@@ -1,0 +1,39 @@
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
+const { connectDB } = require('./utils/database');
+const root = require('./routes/hello');
+const managePosition = require('./routes/managePosition');
+const getTrades = require('./routes/getTrades');
+const getPrice = require('./routes/getPrice');
+const getPositionCount = require('./routes/positioncount');
+const app = express();
+const bodyParser = require('body-parser');
+const PORT = process.env.PORT || 5007;
+
+app.use(cors());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Serve frontend static files from /public
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(root);
+app.use(managePosition);
+app.use(getTrades);
+app.use(getPrice);
+app.use(getPositionCount);
+// Serve control page at /control
+app.get('/control', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'control.html'));
+});
+
+// Connect to MongoDB and start server
+connectDB().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Trade server is running on port ${PORT}`);
+    });
+}).catch((err) => {
+    console.error('Failed to connect to MongoDB:', err);
+    process.exit(1);
+});
