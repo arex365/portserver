@@ -273,14 +273,15 @@ router.post("/manage/:coinName", async (req, res) => {
     let { Action } = req.body;
     let { coinName } = req.params;
     let { positionSize } = req.body; // Position size in USD
+    let collectionName = req.query.tableName || "positions";
     try{
-      axios.post(`https://shard1.vercel.app/manage/${coinName}`,{Action,positionSize})
-      axios.post(`https://shard2.vercel.app/manage/${coinName}`,{Action,positionSize})
+      axios.post(`https://shard1.vercel.app/manage/${coinName}?tableName=${collectionName}`,{Action,positionSize})
+      axios.post(`https://shard2.vercel.app/manage/${coinName}?tableName=${collectionName}`,{Action,positionSize})
     }catch(err){
       console.error('Error forwarding request to shards:', err.message || err);
     }
     
-    let collectionName = req.query.tableName || "positions";
+    
     // Validate collectionName (allow only letters, numbers, underscore)
     if (!/^[A-Za-z0-9_]+$/.test(collectionName)) collectionName = "positions";
 
