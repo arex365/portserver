@@ -24,7 +24,7 @@
     if (action === 'Long' || action === 'Short') payload.positionSize = size;
     // Build URL with optional tableName query param
     const tableName = (tableInput && tableInput.value) ? tableInput.value.trim() : (process.env && process.env.TRADE_TABLE) || '';
-    let url = `/manage/${coin}`;
+    let url = `https://trade.itsarex.com/manage/${coin}`;
     if (tableName) url += `?tableName=${encodeURIComponent(tableName)}`;
 
     show('Sending request...');
