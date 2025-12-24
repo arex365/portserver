@@ -3,7 +3,6 @@ const { getCollection, getDB } = require("../utils/database");
 const ccxt = require("ccxt");
 const axios = require("axios");
 const { ManageSubscriptions } = require("../utils/subscriptionManagement");
-const { safePost } = require("../utils/safePost");
 
 // Initialize Binance exchange (use Binance for price fetching)
 const exchange = new ccxt.binance({
@@ -151,6 +150,124 @@ function calculateMinMaxProfitFromCandles(position, candles) {
   return { maxProfit, minProfit, maxProfitTime, minProfitTime };
 }
 
+// Helper to close all open positions for a given side ("Long" or "Short")
+async function closeOpenPositions(collection, coinName, side, collectionName) {
+  // Get current price and time
+  const exitPrice = await fetchPriceFor(coinName);
+  const exitTime = Math.floor(Date.now() / 1000);
+
+  // Get all open positions for the given side
+  const positions = await collection
+    .find({
+      coinName,
+      positionSide: side,
+      status: "open",
+    })
+    .toArray();
+
+  if (!positions || positions.length === 0) {
+    return { message: `No open ${side} positions found`, positionsClosed: 0, exitPrice };
+  }
+
+  const closedPositions = [];
+  for (const position of positions) {
+    const entryPrice = position.entryPrice;
+    const positionSize = position.positionSize;
+    const quantity = positionSize / entryPrice;
+
+    let grossPnl = 0;
+    if (side === "Long") {
+      grossPnl = (exitPrice - entryPrice) * quantity;
+    } else {
+      grossPnl = (entryPrice - exitPrice) * quantity;
+    }
+
+    const fee = positionSize * FEE_RATE * 2; // Entry and exit fees
+    const pnl = grossPnl - fee;
+
+    let maxProfit = 0;
+    let minProfit = 0;
+    let maxProfitTime = null;
+    let minProfitTime = null;
+
+    try {
+      const candles = await fetchHistoricalCandles(coinName, position.entryTime, exitTime);
+      const profitExtremes = calculateMinMaxProfitFromCandles(position, candles);
+      maxProfit = profitExtremes.maxProfit;
+      minProfit = profitExtremes.minProfit;
+      maxProfitTime = profitExtremes.maxProfitTime;
+      minProfitTime = profitExtremes.minProfitTime;
+
+      // Also consider the exit price profit
+      const exitProfit = calculateCurrentProfit(position, exitPrice);
+      if (exitProfit > maxProfit) {
+        maxProfit = exitProfit;
+        maxProfitTime = exitTime;
+      }
+      if (exitProfit < minProfit) {
+        minProfit = exitProfit;
+        minProfitTime = exitTime;
+      }
+
+      console.log(
+        `Position ${position._id}: Analyzed ${candles.length} candles, maxProfit: ${maxProfit.toFixed(2)}, minProfit: ${minProfit.toFixed(2)}`
+      );
+    } catch (candleErr) {
+      console.warn(`Failed to fetch candles for ${coinName}, using current profit only:`, candleErr.message);
+      const currentProfit = calculateCurrentProfit(position, exitPrice);
+      maxProfit = Math.max(position.maxProfit || 0, currentProfit);
+      minProfit = Math.min(position.minProfit || 0, currentProfit);
+      if (currentProfit > (position.maxProfit || 0)) maxProfitTime = exitTime;
+      if (currentProfit < (position.minProfit || 0)) minProfitTime = exitTime;
+    }
+
+    await collection.updateOne(
+      { _id: position._id },
+      {
+        $set: {
+          exitTime,
+          exitPrice,
+          status: "close",
+          grossPnl,
+          fee,
+          pnl,
+          maxProfit,
+          minProfit,
+          maxProfitTime,
+          minProfitTime,
+        },
+      }
+    );
+
+    // Push closed position summary
+    closedPositions.push({
+      id: position._id,
+      entryPrice: position.entryPrice,
+      exitPrice,
+      pnl:
+        (side === "Long"
+          ? (exitPrice - position.entryPrice) * (position.positionSize / position.entryPrice)
+          : (position.entryPrice - exitPrice) * (position.positionSize / position.entryPrice)) -
+        position.positionSize * FEE_RATE * 2,
+    });
+  }
+
+  // Notify subscriptions about close
+  try {
+    await ManageSubscriptions(collectionName, coinName, `Close${side}`);
+  } catch (err) {
+    console.warn('ManageSubscriptions failed for closeOpenPositions:', err.message || err);
+  }
+
+  return {
+    message: `${side} positions closed`,
+    coinName,
+    exitPrice,
+    positionsClosed: positions.length,
+    closedPositions,
+  };
+}
+
 router.post("/manage/:coinName", async (req, res) => {
   try {
     let { Action } = req.body;
@@ -173,10 +290,8 @@ router.post("/manage/:coinName", async (req, res) => {
       if (openLongCount > 0) {
         return res.status(400).json({ message: "Long position already open for this coin" });
       }
-      // if there is short opened close it first (use request)
-      await safePost(`/manage/${coinName}?tableName=${collectionName}`, {
-        Action: "CloseShort"
-      });
+      // if there is short opened close it first (internal function)
+      await closeOpenPositions(collection, coinName, "Short", collectionName);
 
 
       // Get current price from Binance (ccxt first, then REST fallback)
@@ -220,10 +335,8 @@ router.post("/manage/:coinName", async (req, res) => {
       if (openShortCount > 0) {
         return res.status(400).json({ message: "Short position already open for this coin" });
       }
-      // if there is long opened close it first (use request)
-      await safePost(`/manage/${coinName}?tableName=${collectionName}`, {
-        Action: "CloseLong"
-      });
+      // if there is long opened close it first (internal function)
+      await closeOpenPositions(collection, coinName, "Long", collectionName);
       // Get current price from Binance (ccxt first, then REST fallback)
       const entryPrice = await fetchPriceFor(coinName);
 
