@@ -174,7 +174,7 @@ router.post("/manage/:coinName", async (req, res) => {
         return res.status(400).json({ message: "Long position already open for this coin" });
       }
       // if there is short opened close it first (use request)
-      await safePost(`https://trade.itsarex.com/manage/${coinName}?tableName=${collectionName}`, {
+      await safePost(`/manage/${coinName}?tableName=${collectionName}`, {
         Action: "CloseShort"
       });
 
@@ -221,7 +221,7 @@ router.post("/manage/:coinName", async (req, res) => {
         return res.status(400).json({ message: "Short position already open for this coin" });
       }
       // if there is long opened close it first (use request)
-      await safePost(`https://trade.itsarex.com/manage/${coinName}?tableName=${collectionName}`, {
+      await safePost(`/manage/${coinName}?tableName=${collectionName}`, {
         Action: "CloseLong"
       });
       // Get current price from Binance (ccxt first, then REST fallback)
