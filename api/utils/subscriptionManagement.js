@@ -1,16 +1,16 @@
 const { safePost, safeGet } = require("./safePost");
 const subscriptions = require("./subscription.json");
 async function CloseLong(index, coinname) {
-  await safeGet(`https://positions.itsarex.com/closeLong/${coinname}?index=${index}`);
+  await safeGet(`http://board.itsarex.com:5051/closeLong/${coinname}?index=${index}`);
 }
 async function CloseShort(index, coinname) {
-  await safeGet(`https://positions.itsarex.com/closeShort/${coinname}?index=${index}`);
+  await safeGet(`http://board.itsarex.com:5051/closeShort/${coinname}?index=${index}`);
 }
 async function OpenLong(index, coinname) {
-  await safeGet(`https://breakout.itsarex.com/handleLong/${coinname}/${index}`);
+  await safeGet(`http://board.itsarex.com:5051/long/${coinname}?index=${index}`);
 }
 async function OpenShort(index, coinname) {
-    await safeGet(`https://breakout.itsarex.com/handleShort/${coinname}/${index}`);
+    await safeGet(`http://board.itsarex.com:5051/short/${coinname}?index=${index}`);
 }
 
 async function ManageSubscriptions(stregetyKey, coinName,Action){
