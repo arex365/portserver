@@ -7,10 +7,10 @@ async function CloseShort(index, coinname) {
   await safeGet(`http://board.itsarex.com:5051/closeShort/${coinname}?index=${index}`);
 }
 async function OpenLong(index, coinname) {
-  await safeGet(`http://board.itsarex.com:5051/long/${coinname}?index=${index}`);
+  await safeGet(`http://board.itsarex.com:5051/long/${coinname}/10?index=${index}`);
 }
 async function OpenShort(index, coinname) {
-    await safeGet(`http://board.itsarex.com:5051/short/${coinname}?index=${index}`);
+    await safeGet(`http://board.itsarex.com:5051/short/${coinname}/10?index=${index}`);
 }
 
 async function ManageSubscriptions(stregetyKey, coinName,Action){
