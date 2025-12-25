@@ -3,7 +3,7 @@ const axios = require('axios');
 let baseURL = "https://yma.itsarex.com"; // Replace with actual base URL
 const coin = "ENA"
 let payload = {
-    "Action": "YMA Long",
+    "Action": "YMA Stop",
 }
 console.log(`Sending request to ${baseURL}/api/action/${coin} with payload:`, payload);
 axios.post(`${baseURL}/manage/${coin}/100`, payload).then(res => {
