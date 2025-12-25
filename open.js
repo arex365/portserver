@@ -1,6 +1,6 @@
 const axios = require('axios');
 //const baseURL = "https://adaptive-mrc.vercel.app"; // Replace with actual base URL
-const baseURL = "https://yma.itsarex.com"; // Replace with actual base URL
+let baseURL = "https://yma.itsarex.com"; // Replace with actual base URL
 const coin = "ENA"
 let payload = {
     "Action": "YMA Long",

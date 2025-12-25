@@ -151,6 +151,121 @@ function calculateMinMaxProfitFromCandles(position, candles) {
   return { maxProfit, minProfit, maxProfitTime, minProfitTime };
 }
 
+// Helper to close open positions for the given side (used internally to avoid remote calls)
+async function closeOpenPositions(collection, coinName, side, collectionName) {
+  try {
+    const exitPrice = await fetchPriceFor(coinName);
+    const exitTime = Math.floor(Date.now() / 1000);
+
+    const positions = await collection
+      .find({ coinName, positionSide: side, status: "open" })
+      .toArray();
+
+    if (!positions || positions.length === 0) {
+      return { positionsClosed: 0, closedPositions: [] };
+    }
+
+    const closedPositions = [];
+
+    for (const position of positions) {
+      const entryPrice = position.entryPrice;
+      const positionSize = position.positionSize;
+      const quantity = positionSize / entryPrice;
+
+      // PnL calculation differs for Long vs Short
+      let grossPnl = 0;
+      if (position.positionSide === "Long") {
+        grossPnl = (exitPrice - entryPrice) * quantity;
+      } else {
+        grossPnl = (entryPrice - exitPrice) * quantity;
+      }
+
+      const fee = positionSize * FEE_RATE * 2;
+      const pnl = grossPnl - fee;
+
+      // Calculate min/max profit from historical candles between entry and exit
+      let maxProfit = 0;
+      let minProfit = 0;
+      let maxProfitTime = null;
+      let minProfitTime = null;
+
+      try {
+        const candles = await fetchHistoricalCandles(
+          coinName,
+          position.entryTime,
+          exitTime
+        );
+        const profitExtremes = calculateMinMaxProfitFromCandles(position, candles);
+        maxProfit = profitExtremes.maxProfit;
+        minProfit = profitExtremes.minProfit;
+        maxProfitTime = profitExtremes.maxProfitTime;
+        minProfitTime = profitExtremes.minProfitTime;
+
+        const exitProfit = calculateCurrentProfit(position, exitPrice);
+        if (exitProfit > maxProfit) {
+          maxProfit = exitProfit;
+          maxProfitTime = exitTime;
+        }
+        if (exitProfit < minProfit) {
+          minProfit = exitProfit;
+          minProfitTime = exitTime;
+        }
+
+        console.log(
+          `Position ${position._id}: Analyzed ${candles.length} candles, maxProfit: ${maxProfit.toFixed(2)}, minProfit: ${minProfit.toFixed(2)}`
+        );
+      } catch (err) {
+        console.warn(`Failed to fetch candles for ${coinName}, using current profit only:`, err.message);
+        const currentProfit = calculateCurrentProfit(position, exitPrice);
+        maxProfit = Math.max(position.maxProfit || 0, currentProfit);
+        minProfit = Math.min(position.minProfit || 0, currentProfit);
+        maxProfitTime = position.maxProfitTime || null;
+        minProfitTime = position.minProfitTime || null;
+      }
+
+      await collection.updateOne(
+        { _id: position._id },
+        {
+          $set: {
+            exitTime,
+            exitPrice,
+            status: "close",
+            grossPnl,
+            fee,
+            pnl,
+            maxProfit,
+            minProfit,
+            maxProfitTime: (typeof maxProfitTime !== 'undefined') ? maxProfitTime : (position.maxProfitTime || null),
+            minProfitTime: (typeof minProfitTime !== 'undefined') ? minProfitTime : (position.minProfitTime || null),
+          },
+        }
+      );
+
+      closedPositions.push({
+        id: position._id,
+        entryPrice: position.entryPrice,
+        exitPrice,
+        pnl,
+        maxProfit,
+        minProfit,
+        maxProfitTime,
+        minProfitTime,
+      });
+    }
+
+    // Notify subscription manager about the close
+    if (positions.length > 0 && collectionName) {
+      const action = side === "Long" ? "CloseLong" : "CloseShort";
+      await ManageSubscriptions(collectionName, coinName, action);
+    }
+
+    return { positionsClosed: positions.length, closedPositions };
+  } catch (err) {
+    console.error(`Error closing ${side} positions for ${coinName}:`, err.message || err);
+    throw err;
+  }
+}
+
 router.post("/manage/:coinName", async (req, res) => {
   try {
     let { Action } = req.body;
@@ -173,10 +288,8 @@ router.post("/manage/:coinName", async (req, res) => {
       if (openLongCount > 0) {
         return res.status(400).json({ message: "Long position already open for this coin" });
       }
-      // if there is short opened close it first (use request)
-      await safePost(`https://trade.itsarex.com/manage/${coinName}?tableName=${collectionName}`, {
-        Action: "CloseShort"
-      });
+      // if there is short opened close it first (local call to avoid remote race / older deployments)
+      await closeOpenPositions(collection, coinName, "Short", collectionName);
 
 
       // Get current price from Binance (ccxt first, then REST fallback)
@@ -209,6 +322,7 @@ router.post("/manage/:coinName", async (req, res) => {
         status: "open",
         id: result.insertedId,
       });
+      console.log("Managing subscriptions for Long:", collectionName, coinName);
       await ManageSubscriptions(collectionName,coinName,"Long");
     } else if (Action == "Short") {
       // check th position count first and do nothing if positions are already open
@@ -220,10 +334,8 @@ router.post("/manage/:coinName", async (req, res) => {
       if (openShortCount > 0) {
         return res.status(400).json({ message: "Short position already open for this coin" });
       }
-      // if there is long opened close it first (use request)
-      await safePost(`https://trade.itsarex.com/manage/${coinName}?tableName=${collectionName}`, {
-        Action: "CloseLong"
-      });
+      // if there is long opened close it first (local call to avoid remote race / older deployments)
+      await closeOpenPositions(collection, coinName, "Long", collectionName);
       // Get current price from Binance (ccxt first, then REST fallback)
       const entryPrice = await fetchPriceFor(coinName);
 
@@ -291,6 +403,8 @@ router.post("/manage/:coinName", async (req, res) => {
         // Calculate min/max profit from historical candles between entry and exit
         let maxProfit = 0;
         let minProfit = 0;
+        let maxProfitTime = null;
+        let minProfitTime = null;
 
         try {
           const candles = await fetchHistoricalCandles(
@@ -304,11 +418,19 @@ router.post("/manage/:coinName", async (req, res) => {
           );
           maxProfit = profitExtremes.maxProfit;
           minProfit = profitExtremes.minProfit;
+          maxProfitTime = profitExtremes.maxProfitTime;
+          minProfitTime = profitExtremes.minProfitTime;
 
           // Also consider the exit price profit
           const exitProfit = calculateCurrentProfit(position, exitPrice);
-          maxProfit = Math.max(maxProfit, exitProfit);
-          minProfit = Math.min(minProfit, exitProfit);
+          if (exitProfit > maxProfit) {
+            maxProfit = exitProfit;
+            maxProfitTime = exitTime;
+          }
+          if (exitProfit < minProfit) {
+            minProfit = exitProfit;
+            minProfitTime = exitTime;
+          }
 
           console.log(
             `Position ${position._id}: Analyzed ${
@@ -326,6 +448,8 @@ router.post("/manage/:coinName", async (req, res) => {
           const currentProfit = calculateCurrentProfit(position, exitPrice);
           maxProfit = Math.max(position.maxProfit || 0, currentProfit);
           minProfit = Math.min(position.minProfit || 0, currentProfit);
+          maxProfitTime = position.maxProfitTime || null;
+          minProfitTime = position.minProfitTime || null;
         }
 
         await collection.updateOne(
@@ -340,8 +464,8 @@ router.post("/manage/:coinName", async (req, res) => {
               pnl,
               maxProfit,
               minProfit,
-              maxProfitTime,
-              minProfitTime,
+              maxProfitTime: (typeof maxProfitTime !== 'undefined') ? maxProfitTime : (position.maxProfitTime || null),
+              minProfitTime: (typeof minProfitTime !== 'undefined') ? minProfitTime : (position.minProfitTime || null),
             },
           }
         );
@@ -401,6 +525,8 @@ router.post("/manage/:coinName", async (req, res) => {
         // Calculate min/max profit from historical candles between entry and exit
         let maxProfit = 0;
         let minProfit = 0;
+        let maxProfitTime = null;
+        let minProfitTime = null;
 
         try {
           const candles = await fetchHistoricalCandles(
@@ -414,11 +540,19 @@ router.post("/manage/:coinName", async (req, res) => {
           );
           maxProfit = profitExtremes.maxProfit;
           minProfit = profitExtremes.minProfit;
+          maxProfitTime = profitExtremes.maxProfitTime;
+          minProfitTime = profitExtremes.minProfitTime;
 
           // Also consider the exit price profit
           const exitProfit = calculateCurrentProfit(position, exitPrice);
-          maxProfit = Math.max(maxProfit, exitProfit);
-          minProfit = Math.min(minProfit, exitProfit);
+          if (exitProfit > maxProfit) {
+            maxProfit = exitProfit;
+            maxProfitTime = exitTime;
+          }
+          if (exitProfit < minProfit) {
+            minProfit = exitProfit;
+            minProfitTime = exitTime;
+          }
 
           console.log(
             `Position ${position._id}: Analyzed ${
@@ -436,6 +570,8 @@ router.post("/manage/:coinName", async (req, res) => {
           const currentProfit = calculateCurrentProfit(position, exitPrice);
           maxProfit = Math.max(position.maxProfit || 0, currentProfit);
           minProfit = Math.min(position.minProfit || 0, currentProfit);
+          maxProfitTime = position.maxProfitTime || null;
+          minProfitTime = position.minProfitTime || null;
         }
 
         await collection.updateOne(
@@ -450,8 +586,8 @@ router.post("/manage/:coinName", async (req, res) => {
               pnl,
               maxProfit,
               minProfit,
-              maxProfitTime,
-              minProfitTime,
+              maxProfitTime: (typeof maxProfitTime !== 'undefined') ? maxProfitTime : (position.maxProfitTime || null),
+              minProfitTime: (typeof minProfitTime !== 'undefined') ? minProfitTime : (position.minProfitTime || null),
             },
           }
         );
@@ -565,8 +701,8 @@ router.post("/manage/:coinName", async (req, res) => {
               pnl,
               maxProfit,
               minProfit,
-              maxProfitTime,
-              minProfitTime,
+              maxProfitTime: (typeof maxProfitTime !== 'undefined') ? maxProfitTime : (position.maxProfitTime || null),
+              minProfitTime: (typeof minProfitTime !== 'undefined') ? minProfitTime : (position.minProfitTime || null),
             },
           }
         );
@@ -581,8 +717,8 @@ router.post("/manage/:coinName", async (req, res) => {
           pnl,
           maxProfit,
           minProfit,
-          maxProfitTime,
-          minProfitTime,
+          maxProfitTime: (typeof maxProfitTime !== 'undefined') ? maxProfitTime : null,
+          minProfitTime: (typeof minProfitTime !== 'undefined') ? minProfitTime : null,
         });
       } catch (fetchErr) {
         console.error(

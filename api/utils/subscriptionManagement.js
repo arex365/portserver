@@ -18,14 +18,19 @@ async function ManageSubscriptions(stregetyKey, coinName,Action){
         let subscribers = subscriptions[stregetyKey];
         subscribers.forEach(sub => {
             if(Action == "Long"){
+                console.log("Opening Long for ", sub);
                 OpenLong(sub, coinName);
             }else if(Action == "Short"){
+                console.log("Opening Short for ", sub);
                 OpenShort(sub, coinName);
             }else if(Action == "CloseLong"){
+                console.log("Closing Long for ", sub);
                 CloseLong(sub, coinName);
             }else if(Action == "CloseShort"){
+                console.log("Closing Short for ", sub);
                 CloseShort(sub, coinName);
             }else if(Action == "Close"){
+                console.log("Closing All for ", sub);
                 CloseLong(sub, coinName);
                 CloseShort(sub, coinName);
             } 
