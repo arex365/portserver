@@ -5,11 +5,43 @@ import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'api.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
+Process? rustServerProcess;
 
-void main() {
+Future<void> main() async {
+  // Start the server
+  try {
+    rustServerProcess = await Process.start(
+      'rustserver.exe',
+      [],
+      workingDirectory: Directory.current.path,
+      runInShell: true,
+    );
+
+    debugPrint("Rust server started pid=${rustServerProcess?.pid}");
+  } catch (e) {
+    debugPrint("Failed to start rustserver.exe: $e");
+  }
+
+  // Handle OS terminate signals (where supported)
+  ProcessSignal.sigint.watch().listen((_) => _shutdownRustServer());
+  ProcessSignal.sigterm.watch().listen((_) => _shutdownRustServer());
+
   runApp(const MyApp());
 }
 
+void _shutdownRustServer() {
+  try {
+    if (rustServerProcess != null) {
+      debugPrint("Stopping rustserver.exe…");
+      rustServerProcess!.kill();
+      rustServerProcess = null;
+    }
+  } catch (e) {
+    debugPrint("Shutdown error: $e");
+  }
+}
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
