@@ -2,8 +2,10 @@
   "name": "directional_mrc",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "api/index.js",
+  "bin": "api/index.js",
   "scripts": {
+    "start": "node api/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -16,8 +18,25 @@
     "express": "^5.1.0",
     "firebase-admin": "^13.6.0",
     "mongodb": "^7.0.0",
-    "radis": "^2.0.0",
-    "redis": "^5.10.0",
     "serverless-http": "^3.2.0"
+  },
+  "pkg": {
+    "assets": [
+      "api/public/**/*",
+      "api/routes/**/*",
+      "api/utils/**/*",
+      "api/bunny.json",
+      "api/bundle.json",
+      "api/config.json",
+      "api/firestore.json",
+      "node_modules/ccxt/dist/ccxt.js",
+      "node_modules/axios/dist/node/*",
+      "node_modules/axios/index.js",
+     "node_modules/axios/lib/axios.js"      
+    ],
+    "scripts": [
+      "api/index.js",
+      "node_modules/ccxt/dist/ccxt.js"
+    ]
   }
 }

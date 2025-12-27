@@ -1,36 +1,27 @@
 const router = require('express').Router();
-const ccxt = require('ccxt');
 const axios = require('axios');
 
-// Initialize OKX for price fetching
-const exchange = new ccxt.okx({ enableRateLimit: true, options: { defaultType: 'swap' } });
-
+// Fetch price from Binance
 async function fetchPrice(sym) {
-  const symbol = sym.toUpperCase();
+  const symbol = sym.toUpperCase() + 'USDT';
   try {
-    const ticker = await exchange.fetchTicker(`${symbol}/USDT`);
-    if (ticker && typeof ticker.last !== 'undefined') return Number(ticker.last);
-  } catch (err) {
-    console.warn('ccxt fetchTicker failed for getPrice, falling back to REST API:', err.message || err);
-  }
-
-  try {
-    const instId = `${symbol}-USDT-SWAP`;
-    const url = `https://www.okx.com/api/v5/market/ticker?instId=${instId}`;
+    const url = `https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`;
     const resp = await axios.get(url, { timeout: 5000 });
-    if (resp && resp.data && Array.isArray(resp.data.data) && resp.data.data.length > 0 && resp.data.data[0].last) {
-      return Number(resp.data.data[0].last);
+    if (resp && resp.data && typeof resp.data.price !== 'undefined') {
+      return Number(resp.data.price);
     }
-    throw new Error('Invalid response from OKX REST API');
+    throw new Error('Invalid response from Binance REST API');
   } catch (err) {
-    console.error('Failed to fetch price from OKX REST API:', err.message || err);
+    console.error(`Failed to fetch price for ${symbol}:`, err.message || err);
     throw err;
   }
 }
 
+// Endpoint: /getprice
 router.get('/getprice', async (req, res) => {
   const coin = req.query.coinname || req.query.coinName;
   if (!coin) return res.status(400).json({ error: 'coinname required' });
+
   try {
     const price = await fetchPrice(coin);
     return res.json({ price });
@@ -39,24 +30,15 @@ router.get('/getprice', async (req, res) => {
   }
 });
 
-// Add Binance price endpoint for consistency with position management
+// Optional: keep a separate Binance endpoint for consistency
 router.get('/getprice-binance', async (req, res) => {
   const coin = req.query.coinname || req.query.coinName;
   if (!coin) return res.status(400).json({ error: 'coinname required' });
-  
+
   try {
-    const sym = coin.toUpperCase();
-    const symbol_formatted = `${sym}USDT`;
-    const url = `https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol_formatted}`;
-    const resp = await axios.get(url, { timeout: 5000 });
-    
-    if (resp && resp.data && typeof resp.data.price !== 'undefined') {
-      const price = Number(resp.data.price);
-      return res.json({ price });
-    }
-    throw new Error('Invalid response from Binance REST API');
+    const price = await fetchPrice(coin);
+    return res.json({ price });
   } catch (err) {
-    console.error('Failed to fetch price from Binance REST API:', err.message || err);
     return res.status(500).json({ error: err.message || String(err) });
   }
 });

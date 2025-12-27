@@ -1,25 +1,32 @@
 const router = require("express").Router();
 const { getCollection, getDB } = require("../utils/database");
-const ccxt = require("ccxt");
 const axios = require("axios");
 const { ManageSubscriptions } = require("../utils/subscriptionManagement");
 const { safePost } = require("../utils/safePost");
+async function fetchPrice(sym) {
+  const symbol = sym.toUpperCase() + 'USDT';
+  try {
+    const url = `https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`;
+    const resp = await axios.get(url, { timeout: 5000 });
+    if (resp && resp.data && typeof resp.data.price !== 'undefined') {
+      return Number(resp.data.price);
+    }
+    throw new Error('Invalid response from Binance REST API');
+  } catch (err) {
+    console.error(`Failed to fetch price for ${symbol}:`, err.message || err);
+    throw err;
+  }
+}
 
-// Initialize Binance exchange (use Binance for price fetching)
-const exchange = new ccxt.binance({
-  enableRateLimit: true,
-  options: {
-    defaultType: "future",
-  },
-});
+
 
 // Helper: get latest price for a symbol. Try CCXT first; if it fails, fall back to Binance Futures REST API.
 async function fetchPriceFor(symbol) {
   const sym = symbol.toUpperCase();
   try {
-    const ticker = await exchange.fetchTicker(`${sym}/USDT`);
-    if (ticker && typeof ticker.last !== "undefined")
-      return Number(ticker.last);
+    const ticker = await fetchPrice(`${sym}`);
+    // if (ticker && typeof ticker.last !== "undefined")
+    //   return Number(ticker.last);
   } catch (err) {
     console.warn(
       "ccxt fetchTicker failed, falling back to REST API:",
