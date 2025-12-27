@@ -1,4 +1,3 @@
-use actix_files::Files;
 use actix_web::{web, App, HttpServer, middleware::Logger};
 use env_logger::Env;
 use dotenv::dotenv;
@@ -9,7 +8,9 @@ mod handlers;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(
+        Env::default().default_filter_or("info")
+    ).init();
 
     let mongo_uri = std::env::var("MONGODB_URI").unwrap_or_else(|_| {
         eprintln!("MONGODB_URI not set, using placeholder - set this env var before running");
@@ -24,8 +25,6 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(Logger::default())
             .app_data(web::Data::new(client.clone()))
-            // Static files (public)
-            .service(Files::new("/public", "./public").show_files_listing())
             .route("/", web::get().to(handlers::root::index))
             .route("/ping", web::get().to(handlers::root::ping))
             .route("/health", web::get().to(handlers::root::health))

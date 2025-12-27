@@ -5,12 +5,26 @@ import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'api.dart';
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/material.dart';
+
 Process? rustServerProcess;
 
 Future<void> main() async {
-  // Start the server
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await _startRustServer();
+
+  runApp(const MyApp());
+}
+
+Future<void> _startRustServer() async {
   try {
     rustServerProcess = await Process.start(
       'rustserver.exe',
@@ -20,28 +34,28 @@ Future<void> main() async {
     );
 
     debugPrint("Rust server started pid=${rustServerProcess?.pid}");
+
+    rustServerProcess?.stdout
+        .transform(SystemEncoding().decoder)
+        .listen(debugPrint);
+
+    rustServerProcess?.stderr
+        .transform(SystemEncoding().decoder)
+        .listen(debugPrint);
   } catch (e) {
     debugPrint("Failed to start rustserver.exe: $e");
   }
 
-  // Handle OS terminate signals (where supported)
   ProcessSignal.sigint.watch().listen((_) => _shutdownRustServer());
   ProcessSignal.sigterm.watch().listen((_) => _shutdownRustServer());
-
-  runApp(const MyApp());
 }
 
-void _shutdownRustServer() {
-  try {
-    if (rustServerProcess != null) {
-      debugPrint("Stopping rustserver.exe…");
-      rustServerProcess!.kill();
-      rustServerProcess = null;
-    }
-  } catch (e) {
-    debugPrint("Shutdown error: $e");
-  }
+Future<void> _shutdownRustServer() async {
+  debugPrint("Shutting down Rust server...");
+  rustServerProcess?.kill(ProcessSignal.sigterm);
 }
+
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -57,20 +71,112 @@ class MyApp extends StatelessWidget {
           primary: Color(0xFF1E3A8A),
           secondary: Color(0xFF16A34A),
         ),
-        textTheme: GoogleFonts.poppinsTextTheme(ThemeData.light().textTheme).apply(bodyColor: Colors.black87),
+        textTheme: GoogleFonts.poppinsTextTheme(
+          ThemeData.light().textTheme,
+        ).apply(bodyColor: Colors.black87),
         cardColor: Colors.white,
-        elevatedButtonTheme: ElevatedButtonThemeData(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E3A8A), foregroundColor: Colors.white)),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF1E3A8A),
+            foregroundColor: Colors.white,
+          ),
+        ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: const Color(0xFFF8FAFC),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide.none,
+          ),
         ),
-        appBarTheme: const AppBarTheme(backgroundColor: Color(0xFFE6EEF8), elevation: 1, iconTheme: IconThemeData(color: Colors.black87), titleTextStyle: TextStyle(color: Colors.black87, fontSize: 20)),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFFE6EEF8),
+          elevation: 1,
+          iconTheme: IconThemeData(color: Colors.black87),
+          titleTextStyle:
+              TextStyle(color: Colors.black87, fontSize: 20),
+        ),
       ),
-      home: const DashboardPage(),
+      home: const RustServerGate(),
     );
   }
-} 
+}
+class RustServerGate extends StatefulWidget {
+  const RustServerGate({super.key});
+
+  @override
+  State<RustServerGate> createState() => _RustServerGateState();
+}
+
+class _RustServerGateState extends State<RustServerGate> {
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _waitForServerReady();
+  }
+
+  Future<void> _waitForServerReady() async {
+    const uri = 'http://localhost:5007';
+    const retryDelay = Duration(seconds: 1);
+
+    while (mounted && !_ready) {
+      try {
+        final client = HttpClient();
+        final req = await client.getUrl(Uri.parse(uri));
+        final res = await req.close();
+
+        if (res.statusCode == 200) {
+          setState(() => _ready = true);
+        }
+
+        client.close();
+      } catch (_) {
+        debugPrint("Waiting for Rust server...");
+      }
+
+      if (!_ready) {
+        await Future.delayed(retryDelay);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_ready) return const LoadingScreen();
+    return const DashboardPage();
+  }
+}
+
+class LoadingScreen extends StatelessWidget {
+  const LoadingScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Color(0xFFF3F4F6),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(
+              strokeWidth: 4,
+            ),
+            SizedBox(height: 16),
+            Text(
+              "Setting up server...",
+              style: TextStyle(
+                color: Colors.black87,
+                fontSize: 18,
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
