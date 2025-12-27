@@ -289,8 +289,9 @@ router.post("/manage/:coinName", async (req, res) => {
         return res.status(400).json({ message: "Long position already open for this coin" });
       }
       // if there is short opened close it first (local call to avoid remote race / older deployments)
+      ManageSubscriptions(collectionName,coinName,"Long");
       await closeOpenPositions(collection, coinName, "Short", collectionName);
-
+      
 
       // Get current price from Binance (ccxt first, then REST fallback)
       const entryPrice = await fetchPriceFor(coinName);
@@ -323,7 +324,7 @@ router.post("/manage/:coinName", async (req, res) => {
         id: result.insertedId,
       });
       console.log("Managing subscriptions for Long:", collectionName, coinName);
-      await ManageSubscriptions(collectionName,coinName,"Long");
+      //await ManageSubscriptions(collectionName,coinName,"Long");
     } else if (Action == "Short") {
       // check th position count first and do nothing if positions are already open
       const openShortCount = await collection.countDocuments({
@@ -335,6 +336,7 @@ router.post("/manage/:coinName", async (req, res) => {
         return res.status(400).json({ message: "Short position already open for this coin" });
       }
       // if there is long opened close it first (local call to avoid remote race / older deployments)
+      ManageSubscriptions(collectionName,coinName,"Short");
       await closeOpenPositions(collection, coinName, "Long", collectionName);
       // Get current price from Binance (ccxt first, then REST fallback)
       const entryPrice = await fetchPriceFor(coinName);
@@ -366,7 +368,7 @@ router.post("/manage/:coinName", async (req, res) => {
         status: "open",
         id: result.insertedId,
       });
-      await ManageSubscriptions(collectionName,coinName,"Short");
+      //await ManageSubscriptions(collectionName,coinName,"Short");
     } else if (Action == "CloseLong") {
       // Get current price from Binance (ccxt first, then REST fallback)
       const exitPrice = await fetchPriceFor(coinName);
