@@ -370,6 +370,7 @@ router.post("/manage/:coinName", async (req, res) => {
       });
       //await ManageSubscriptions(collectionName,coinName,"Short");
     } else if (Action == "CloseLong") {
+      ManageSubscriptions(collectionName,coinName,"CloseLong");
       // Get current price from Binance (ccxt first, then REST fallback)
       const exitPrice = await fetchPriceFor(coinName);
       const exitTime = Math.floor(Date.now() / 1000); // UNIX epoch time
@@ -490,8 +491,9 @@ router.post("/manage/:coinName", async (req, res) => {
         positionsClosed: positions.length,
         closedPositions,
       });
-      await ManageSubscriptions(collectionName,coinName,"CloseLong");
+      // await ManageSubscriptions(collectionName,coinName,"CloseLong");
     } else if (Action == "CloseShort") {
+      ManageSubscriptions(collectionName,coinName,"CloseShort");
       // Get current price from Binance (ccxt first, then REST fallback)
       const exitPrice = await fetchPriceFor(coinName);
       const exitTime = Math.floor(Date.now() / 1000); // UNIX epoch time
@@ -612,8 +614,9 @@ router.post("/manage/:coinName", async (req, res) => {
         positionsClosed: positions.length,
         closedPositions,
       });
-      await ManageSubscriptions(collectionName,coinName,"CloseShort");
+      //await ManageSubscriptions(collectionName,coinName,"CloseShort");
     } else if (Action === "CloseById" && req.body && req.body.id) {
+      ManageSubscriptions(collectionName,position.coinName,"Close");
       const { ObjectId } = require("mongodb");
       let positionId;
       try {
@@ -627,7 +630,7 @@ router.post("/manage/:coinName", async (req, res) => {
       if (!position) {
         return res.status(404).json({ message: "Position not found" });
       }
-      ManageSubscriptions(collectionName,position.coinName,"Close");
+      // ManageSubscriptions(collectionName,position.coinName,"Close");
       try {
         const exitPrice = await fetchPriceFor(position.coinName);
         const exitTime = Math.floor(Date.now() / 1000); // UNIX epoch time
