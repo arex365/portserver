@@ -3,27 +3,32 @@ const ccxt = require('ccxt');
 const axios = require('axios');
 
 // Initialize OKX for price fetching
-const exchange = new ccxt.okx({ enableRateLimit: true, options: { defaultType: 'swap' } });
+const exchange = new ccxt.binance({
+  enableRateLimit: true,
+  options: { defaultType: 'future' } // Use Binance Futures
+});
 
 async function fetchPrice(sym) {
   const symbol = sym.toUpperCase();
   try {
+    // Binance Futures uses 'USDT' pair directly
     const ticker = await exchange.fetchTicker(`${symbol}/USDT`);
     if (ticker && typeof ticker.last !== 'undefined') return Number(ticker.last);
   } catch (err) {
     console.warn('ccxt fetchTicker failed for getPrice, falling back to REST API:', err.message || err);
   }
 
+  // Fallback to Binance Futures REST API
   try {
-    const instId = `${symbol}-USDT-SWAP`;
-    const url = `https://www.okx.com/api/v5/market/ticker?instId=${instId}`;
+    const symbolPair = `${symbol}USDT`;
+    const url = `https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbolPair}`;
     const resp = await axios.get(url, { timeout: 5000 });
-    if (resp && resp.data && Array.isArray(resp.data.data) && resp.data.data.length > 0 && resp.data.data[0].last) {
-      return Number(resp.data.data[0].last);
+    if (resp && resp.data && resp.data.price) {
+      return Number(resp.data.price);
     }
-    throw new Error('Invalid response from OKX REST API');
+    throw new Error('Invalid response from Binance REST API');
   } catch (err) {
-    console.error('Failed to fetch price from OKX REST API:', err.message || err);
+    console.error('Failed to fetch price from Binance REST API:', err.message || err);
     throw err;
   }
 }
