@@ -10,6 +10,7 @@ const getPositionCount = require('./routes/positioncount');
 // const extra = require('./routes/extra')
 const app = express();
 const bodyParser = require('body-parser');
+const subs = require('./routes/subs')
 const PORT = process.env.PORT || 5007;
 
 app.use(cors());
@@ -24,6 +25,7 @@ app.use(managePosition);
 app.use(getTrades);
 app.use(getPrice);
 app.use(getPositionCount);
+app.use(subs)
 // Serve control page at /control
 app.get('/control', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'control.html'));
