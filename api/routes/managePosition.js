@@ -281,7 +281,7 @@ router.post("/manage/:coinName", async (req, res) => {
     const entryTime = Math.floor(Date.now() / 1000); // UNIX epoch time
     if(Action == "Extra"){
         let _res = await addExtra(coinName,collectionName,100)
-        return _res
+        return res.send(_res)
     }
 
     if (Action == "Long") {

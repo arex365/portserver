@@ -156,6 +156,7 @@
       "coinName",
       "entryTime", 
       "entryPrice",
+      "positionSize",
       "exitTime",
       "exitPrice",
       "unrealized",
