@@ -4,6 +4,7 @@ const ccxt = require("ccxt");
 const axios = require("axios");
 const { ManageSubscriptions } = require("../utils/subscriptionManagement");
 const { safePost } = require("../utils/safePost");
+const addExtra = require("./extra");
 
 // Initialize Binance exchange (use Binance for price fetching)
 const exchange = new ccxt.binance({
@@ -270,6 +271,7 @@ router.post("/manage/:coinName", async (req, res) => {
   try {
     let { Action } = req.body;
     let { coinName } = req.params;
+    console.log(`user gave coin ${coinName}`)
     let { positionSize } = req.body; // Position size in USD
     let collectionName = req.query.tableName || "positions";
     // Validate collectionName (allow only letters, numbers, underscore)
@@ -277,6 +279,10 @@ router.post("/manage/:coinName", async (req, res) => {
 
     const collection = getCollection(collectionName);
     const entryTime = Math.floor(Date.now() / 1000); // UNIX epoch time
+    if(Action == "Extra"){
+        let _res = await addExtra(coinName,collectionName,100)
+        return _res
+    }
 
     if (Action == "Long") {
      // check th position count first and do nothing if positions are already open
@@ -616,7 +622,7 @@ router.post("/manage/:coinName", async (req, res) => {
       });
       //await ManageSubscriptions(collectionName,coinName,"CloseShort");
     } else if (Action === "CloseById" && req.body && req.body.id) {
-      ManageSubscriptions(collectionName,position.coinName,"Close");
+      
       const { ObjectId } = require("mongodb");
       let positionId;
       try {
@@ -627,6 +633,7 @@ router.post("/manage/:coinName", async (req, res) => {
 
       // fetch the position document
       const position = await collection.findOne({ _id: positionId });
+      ManageSubscriptions(collectionName,position.coinName,"Close");
       if (!position) {
         return res.status(404).json({ message: "Position not found" });
       }
