@@ -30,6 +30,7 @@ app.use(subs)
 app.get('/control', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'control.html'));
 });
+app.get("/admin",(req,res)=>res.sendFile(path.join(__dirname, 'public', 'sub.html')))
 
 // Connect to MongoDB and start server
 connectDB().then(() => {

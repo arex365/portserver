@@ -67,6 +67,9 @@ let getSubscription = async (strategy, id = null)=>{
 async function ManageSubscriptions(stregetyKey, coinName,Action){
     let response = await getSubscription(stregetyKey) 
     let subs = response
+    console.log(subs)
+    let a = []
+    if(subs.length == 0) return;
     subs = subs[0]
     let {entries} = subs 
     entries.forEach(entry=>{
