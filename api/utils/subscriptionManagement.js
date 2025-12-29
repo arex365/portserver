@@ -50,7 +50,7 @@ let getSubscription = async (strategy, id = null)=>{
     const data = docs.map(d => ({
       strategy: d.name,
       entries:
-        id !== undefined
+        id !== null
           ? (d.entries || []).filter(e => e.id === Number(id))
           : (d.entries || [])
     }));
@@ -71,24 +71,30 @@ async function ManageSubscriptions(stregetyKey, coinName,Action){
     let a = []
     if(subs.length == 0) return;
     subs = subs[0]
+    console.log(subs)
     let {entries} = subs 
     entries.forEach(entry=>{
         let {id,whitelist,amount} = entry 
-        if(whitelist.includes(coinName)){
+        if(whitelist.includes(coinName) || whitelist.includes("ALL")){
             if(Action == "Long"){
                 console.log("Opening Long for ", id);
+                console.log("Amount: ",amount)
                 OpenLong(id, coinName,amount);
             }else if(Action == "Short"){
                 console.log("Opening Short for ", id);
+                console.log("Amount: ",amount)
                 OpenShort(id, coinName,amount);
             }else if(Action == "CloseLong"){
                 console.log("Closing Long for ", id);
+                console.log("Amount: ",amount)
                 CloseLong(id, coinName);
             }else if(Action == "CloseShort"){
                 console.log("Closing Short for ", id);
+                console.log("Amount: ",amount)
                 CloseShort(id, coinName);
             }else if(Action == "Close"){
                 console.log("Closing All for ", id);
+                console.log("Amount: ",amount)
                 CloseLong(id, coinName);
                 CloseShort(id, coinName);
             }
