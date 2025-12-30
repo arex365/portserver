@@ -2,6 +2,14 @@ const { default: axios } = require("axios");
 const { safePost, safeGet } = require("./safePost");
 const subscriptions = require("./subscription.json");
 const { getCollection } = require("./database");
+function checkIfCoinExists(coinName, data) {
+  if (!data?.positions?.openPositions) return false;
+
+  return data.positions.openPositions.some(
+    position => position.symbol === coinName
+  );
+}
+
 async function CloseLong(index, coinname) {
   await safeGet(`http://board.itsarex.com:5051/closeLong/${coinname}?index=${index}`);
 }
@@ -64,7 +72,7 @@ let getSubscription = async (strategy, id = null)=>{
     return null
   }    
 }
-async function ManageSubscriptions(stregetyKey, coinName,Action){
+async function ManageSubscriptions(stregetyKey, coinName,Action,multiplier=1){
     let response = await getSubscription(stregetyKey) 
     let subs = response
     console.log(subs)
@@ -76,14 +84,14 @@ async function ManageSubscriptions(stregetyKey, coinName,Action){
     entries.forEach(entry=>{
         let {id,whitelist,amount} = entry 
         if(whitelist.includes(coinName) || whitelist.includes("ALL")){
-            if(Action == "Long"){
+            if(Action == "Long" || Action == "Extra Long"){
                 console.log("Opening Long for ", id);
                 console.log("Amount: ",amount)
-                OpenLong(id, coinName,amount);
-            }else if(Action == "Short"){
+                OpenLong(id, coinName,amount*multiplier);
+            }else if(Action == "Short" || Action == "Extra Short"){
                 console.log("Opening Short for ", id);
                 console.log("Amount: ",amount)
-                OpenShort(id, coinName,amount);
+                OpenShort(id, coinName,amount*multiplier);
             }else if(Action == "CloseLong"){
                 console.log("Closing Long for ", id);
                 console.log("Amount: ",amount)

@@ -1,6 +1,7 @@
 const { getCollection } = require("../utils/database");
 const axios = require("axios");
 const ccxt = require("ccxt");
+const { ManageSubscriptions } = require("../utils/subscriptionManagement");
 
 // Initialize Binance futures exchange
 const exchange = new ccxt.binance({
@@ -53,6 +54,16 @@ let addExtra = async (coinName, collectionName, extraUsd = 100) => {
   // Current values
   const oldPositionSize = Number(position.positionSize);
   const oldEntryPrice = Number(position.entryPrice);
+  try{
+    if(position.positionSide == "Long"){
+      ManageSubscriptions(collectionName,coinName,"Extra Long")
+    }else if(position.positionSide == "Short"){
+      ManageSubscriptions(collectionName,coinName,"Extra Short")
+    }
+  }catch(e){
+    
+  }
+
 
   if ([oldPositionSize, oldEntryPrice].some(Number.isNaN)) {
     throw new Error("Corrupted position data (non-numeric values)");
