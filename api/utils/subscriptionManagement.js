@@ -2,11 +2,11 @@ const { default: axios } = require("axios");
 const { safePost, safeGet } = require("./safePost");
 const subscriptions = require("./subscription.json");
 const { getCollection } = require("./database");
-function checkIfCoinExists(coinName, data) {
+function checkIfCoinExistsInSide(coinName, data,side) {
   if (!data?.positions?.openPositions) return false;
 
   return data.positions.openPositions.some(
-    position => position.symbol === coinName
+    position => position.positionSide === side 
   );
 }
 
@@ -16,11 +16,25 @@ async function CloseLong(index, coinname) {
 async function CloseShort(index, coinname) {
   await safeGet(`http://board.itsarex.com:5051/closeShort/${coinname}?index=${index}`);
 }
-async function OpenLong(index, coinname,amount) {
+async function OpenLong(index, coinname,amount,appendable = true) {
+  if(!appendable){
+    let data = await safeGet(`http://board.itsarex.com:5051/list?index=${index}`)
+    let status = checkIfCoinExistsInSide(coinname,data,"LONG")
+    if(status){
+      return
+    }
+  }
   await safeGet(`http://board.itsarex.com:5051/long/${coinname}/${amount}?index=${index}`);
 }
-async function OpenShort(index, coinname,amount) {
-    await safeGet(`http://board.itsarex.com:5051/short/${coinname}/${amount}?index=${index}`);
+async function OpenShort(index, coinname,amount, appendable = true) {
+  if(!appendable){
+    let data = await safeGet(`http://board.itsarex.com:5051/list?index=${index}`)
+    let status = checkIfCoinExistsInSide(coinname,data,"SHORT")
+    if(status){
+      return
+    }
+  }
+  await safeGet(`http://board.itsarex.com:5051/short/${coinname}/${amount}?index=${index}`);
 }
 
 // async function ManageSubscriptions(stregetyKey, coinName,Action){
@@ -72,8 +86,11 @@ let getSubscription = async (strategy, id = null)=>{
     return null
   }    
 }
-async function ManageSubscriptions(stregetyKey, coinName,Action,multiplier=1){
-    let response = await getSubscription(stregetyKey) 
+async function ManageSubscriptions(stregetyKey, coinName,Action,multiplier=1,appendable = false){
+    let response = await getSubscription(stregetyKey)
+    if(Action.includes("Extra")){
+        appendable = true 
+    } 
     let subs = response
     console.log(subs)
     let a = []
@@ -87,11 +104,11 @@ async function ManageSubscriptions(stregetyKey, coinName,Action,multiplier=1){
             if(Action == "Long" || Action == "Extra Long"){
                 console.log("Opening Long for ", id);
                 console.log("Amount: ",amount)
-                OpenLong(id, coinName,amount*multiplier);
+                OpenLong(id, coinName,amount*multiplier,appendable);
             }else if(Action == "Short" || Action == "Extra Short"){
                 console.log("Opening Short for ", id);
                 console.log("Amount: ",amount)
-                OpenShort(id, coinName,amount*multiplier);
+                OpenShort(id, coinName,amount*multiplier,appendable);
             }else if(Action == "CloseLong"){
                 console.log("Closing Long for ", id);
                 console.log("Amount: ",amount)

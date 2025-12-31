@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { getCollection } = require('../utils/database');
-
+router.get("/version",(req,res)=>res.send("Version 1.0"))
 // GET /getPositionCount/:coinName/:tableName?side=Long|Short
 // Returns the total count of positions for a specific coin with status 'open'
 // Optional: ?side=Long or ?side=Short to filter by position side

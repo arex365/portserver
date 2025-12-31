@@ -272,6 +272,12 @@ router.post("/manage/:coinName", async (req, res) => {
     let { Action } = req.body;
     let { coinName } = req.params;
     let multiplier = Number(req.query.mult) || 1;
+    let appendable = req.query.appendable || false 
+    if(appendable == 'true'){
+      appendable = true
+    }else{
+      appendable = false 
+    }
     console.log(`user gave coin ${coinName}`)
     let { positionSize } = req.body; // Position size in USD
     let collectionName = req.query.tableName || "positions";
@@ -296,7 +302,7 @@ router.post("/manage/:coinName", async (req, res) => {
         return res.status(400).json({ message: "Long position already open for this coin" });
       }
       // if there is short opened close it first (local call to avoid remote race / older deployments)
-      ManageSubscriptions(collectionName,coinName,"Long",multiplier);
+      ManageSubscriptions(collectionName,coinName,"Long",multiplier,appendable);
       await closeOpenPositions(collection, coinName, "Short", collectionName);
       
 
@@ -343,7 +349,7 @@ router.post("/manage/:coinName", async (req, res) => {
         return res.status(400).json({ message: "Short position already open for this coin" });
       }
       // if there is long opened close it first (local call to avoid remote race / older deployments)
-      ManageSubscriptions(collectionName,coinName,"Short",multiplier);
+      ManageSubscriptions(collectionName,coinName,"Short",multiplier,appendable);
       await closeOpenPositions(collection, coinName, "Long", collectionName);
       // Get current price from Binance (ccxt first, then REST fallback)
       const entryPrice = await fetchPriceFor(coinName);
