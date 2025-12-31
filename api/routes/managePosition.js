@@ -272,9 +272,9 @@ router.post("/manage/:coinName", async (req, res) => {
     let { Action } = req.body;
     let { coinName } = req.params;
     let multiplier = Number(req.query.mult) || 1;
-    let appendable = req.query.appendable || false 
-    if(appendable == 'true'){
-      appendable = true
+    let appendable = req.query.appendable || true 
+    if(appendable == 'false'){
+      appendable = false
     }else{
       appendable = false 
     }
