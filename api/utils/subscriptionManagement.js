@@ -89,7 +89,8 @@ let getSubscription = async (strategy, id = null)=>{
 async function ManageSubscriptions(stregetyKey, coinName,Action,multiplier=1,appendable = false){
     let response = await getSubscription(stregetyKey)
     if(Action.includes("Extra")){
-        appendable = true 
+        appendable = true
+        multiplier = 0.4 
     } 
     let subs = response
     console.log(subs)
