@@ -16,12 +16,6 @@
     .position-short { color: red; }
     .pnl-positive { color: green; font-weight: bold; }
     .pnl-negative { color: red; font-weight: bold; }
-    body{
-      width: 100%;
-    }
-    .container{
-      width: 90% !important;
-    }
 td.session-london {
   background-color: #cce5ff !important;
 }
@@ -37,7 +31,7 @@ td.session-tokyo {
   </style>
 </head>
 <body class="bg-light">
-  <div class="container my-4" style="width: 90%;">
+  <div class="container my-4">
     <h1 class="mb-4">Trading Dashboard</h1>
 
     <!-- Filters -->
@@ -61,22 +55,15 @@ td.session-tokyo {
       <span id="messageText"></span>
       <div class="spinner-border spinner-border-sm loading-spinner" role="status"></div>
     </div>
-    <!-- Action Buttons -->
-    <div class="mb-3 d-flex gap-2 flex-wrap">
-      <button id="updateProfitsBtn" class="btn btn-success">Update Profits</button>
-      <button id="recalculateHistoricalBtn" class="btn btn-warning">Recalculate Historical</button>
-      <button id="bulkDeleteBtn" class="btn btn-danger">Bulk Delete</button>
-      <button id="bestCoinsBtn" class="btn btn-info">Best Coins</button>
-    </div>
+
     <!-- P&L Summary -->
     <div class="mb-3">
       <span>Total Unrealized: <strong id="totalUnrealized">$0.00</strong></span> |
       <span>Total Realized: <strong id="totalRealized">$0.00</strong></span>
     </div>
-    </div>
 
     <!-- Table -->
-    <div class="table-responsive" style="width: 90%; margin: 0 auto;">
+    <div class="table-responsive">
       <table id="tradesTable" class="table table-hover">
         <thead id="tableHead" class="table-dark"></thead>
         <tbody id="tableBody"></tbody>
@@ -88,7 +75,13 @@ td.session-tokyo {
       <h5 class="mt-2">No trades found</h5>
     </div>
 
-
+    <!-- Action Buttons -->
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+      <button id="updateProfitsBtn" class="btn btn-success">Update Profits</button>
+      <button id="recalculateHistoricalBtn" class="btn btn-warning">Recalculate Historical</button>
+      <button id="bulkDeleteBtn" class="btn btn-danger">Bulk Delete</button>
+      <button id="bestCoinsBtn" class="btn btn-info">Best Coins</button>
+    </div>
   </div>
 
   <!-- Best Coins Modal -->

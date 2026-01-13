@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Trading Dashboard</title>
-    <button id="export-csv" class="btn btn-success">
-      <i class="bi bi-download me-1"></i> Export CSV
-    </button>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <style>
@@ -16,68 +13,58 @@
     .position-short { color: red; }
     .pnl-positive { color: green; font-weight: bold; }
     .pnl-negative { color: red; font-weight: bold; }
-    body{
-      width: 100%;
-    }
-    .container{
-      width: 90% !important;
-    }
-td.session-london {
-  background-color: #cce5ff !important;
-}
-
-td.session-newyork {
-  background-color: #d4edda !important;
-}
-
-td.session-tokyo {
-  background-color: #fff3cd !important;
-}
+    .session-tokyo { background-color: #e0f7fa; }
+    .session-london { background-color: #fff9c4; }
+    .session-newyork { background-color: #ffecb3; }
     .loading-spinner { display: none; margin-left: 0.5rem; }
   </style>
 </head>
 <body class="bg-light">
-  <div class="container my-4" style="width: 90%;">
+  <div class="container my-4">
     <h1 class="mb-4">Trading Dashboard</h1>
 
     <!-- Filters -->
-<div class="row g-2 mb-3"> 
-  <div class="col-md-2">
-     <select id="tableSelect" class="form-select"></select> </div> 
-     <div class="col-md-2"> 
-      <input type="text" id="coinInput" class="form-control" placeholder="Coin Name"> </div>
-       <div class="col-md-2"> <select id="statusSelect" class="form-select"> 
-        <option value="all">All Status</option> <option value="open">Open</option> 
-        <option value="close">Closed</option> </select> </div> <div class="col-md-2"> 
-          <input type="date" id="startDateInput" class="form-control"> </div> 
-          <div class="col-md-2"> <input type="date" id="endDateInput" class="form-control"> </div> 
-          <div class="col-md-2 d-flex gap-1"> <button id="fetchBtn" class="btn btn-primary flex-grow-1">Search</button> 
-            <button id="clearBtn" class="btn btn-secondary">Clear</button> 
-          </div> </div>
-
+    <div class="row g-2 mb-3">
+      <div class="col-md-2">
+        <select id="tableSelect" class="form-select"></select>
+      </div>
+      <div class="col-md-2">
+        <input type="text" id="coinInput" class="form-control" placeholder="Coin Name">
+      </div>
+      <div class="col-md-2">
+        <select id="statusSelect" class="form-select">
+          <option value="all">All Status</option>
+          <option value="open">Open</option>
+          <option value="close">Closed</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <input type="date" id="startDateInput" class="form-control">
+      </div>
+      <div class="col-md-2">
+        <input type="date" id="endDateInput" class="form-control">
+      </div>
+      <div class="col-md-2 d-flex gap-1">
+        <button id="fetchBtn" class="btn btn-primary flex-grow-1">Search</button>
+        <button id="clearBtn" class="btn btn-secondary">Clear</button>
+      </div>
+    </div>
 
     <!-- Messages -->
     <div id="message" class="alert d-none">
       <span id="messageText"></span>
       <div class="spinner-border spinner-border-sm loading-spinner" role="status"></div>
     </div>
-    <!-- Action Buttons -->
-    <div class="mb-3 d-flex gap-2 flex-wrap">
-      <button id="updateProfitsBtn" class="btn btn-success">Update Profits</button>
-      <button id="recalculateHistoricalBtn" class="btn btn-warning">Recalculate Historical</button>
-      <button id="bulkDeleteBtn" class="btn btn-danger">Bulk Delete</button>
-      <button id="bestCoinsBtn" class="btn btn-info">Best Coins</button>
-    </div>
+
     <!-- P&L Summary -->
     <div class="mb-3">
       <span>Total Unrealized: <strong id="totalUnrealized">$0.00</strong></span> |
       <span>Total Realized: <strong id="totalRealized">$0.00</strong></span>
     </div>
-    </div>
 
     <!-- Table -->
-    <div class="table-responsive" style="width: 90%; margin: 0 auto;">
-      <table id="tradesTable" class="table table-hover">
+    <div class="table-responsive">
+      <table class="table table-hover">
         <thead id="tableHead" class="table-dark"></thead>
         <tbody id="tableBody"></tbody>
       </table>
@@ -88,7 +75,13 @@ td.session-tokyo {
       <h5 class="mt-2">No trades found</h5>
     </div>
 
-
+    <!-- Action Buttons -->
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+      <button id="updateProfitsBtn" class="btn btn-success">Update Profits</button>
+      <button id="recalculateHistoricalBtn" class="btn btn-warning">Recalculate Historical</button>
+      <button id="bulkDeleteBtn" class="btn btn-danger">Bulk Delete</button>
+      <button id="bestCoinsBtn" class="btn btn-info">Best Coins</button>
+    </div>
   </div>
 
   <!-- Best Coins Modal -->
@@ -109,6 +102,5 @@ td.session-tokyo {
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
   <script src="/app.js"></script>
-  <script src="/export.js"></script>
 </body>
 </html>

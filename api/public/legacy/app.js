@@ -1,8 +1,6 @@
 (function () {
   const baseURL = "";
   const tableSelect = document.getElementById("tableSelect");
-  const startDateInput = document.getElementById("startDateInput");
-const endDateInput = document.getElementById("endDateInput");
 
   // fetch table names and populate dropdown
   async function loadTables() {
@@ -614,84 +612,52 @@ const endDateInput = document.getElementById("endDateInput");
     }
   }
 
-async function fetchTrades() {
-  const tableName = tableSelect.value;
-  const coinName = coinInput.value.trim();
-  const status = statusSelect.value;
-  const startDate = startDateInput.value;
-  const endDate = endDateInput.value;
+  async function fetchTrades() {
+    const tableName = tableSelect.value;
+    const coinName = coinInput.value.trim();
+    const status = statusSelect.value;
 
-  const params = {};
-  if (tableName) params.tableName = tableName;
-  if (coinName) params.coinName = coinName;
-  if (status) params.status = status;
+    const params = {};
+    if (tableName) params.tableName = tableName;
+    if (coinName) params.coinName = coinName;
+    if (status) params.status = status;
 
-  showMessage("Loading trades...", true);
+    showMessage("Loading trades...", true);
 
-  try {
-    const resp = await axios.get(baseURL + "/gettrades", {
-      params,
-      timeout: 10000,
-    });
-    if (resp && resp.data && Array.isArray(resp.data.trades)) {
-      let trades = resp.data.trades;
-
-      // Filter trades by entryTime date ignoring time part
-      if (startDate) {
-        const start = new Date(startDate);
-        trades = trades.filter((t) => {
-          if (!t.entryTime) return false;
-          const entryDate = new Date(t.entryTime * 1000);
-          // Zero out time part for comparison
-          entryDate.setHours(0, 0, 0, 0);
-          return entryDate >= start;
-        });
+    try {
+      const resp = await axios.get(baseURL + "/gettrades", {
+        params,
+        timeout: 10000,
+      });
+      if (resp && resp.data && Array.isArray(resp.data.trades)) {
+        // enrich trades with unrealized pnl and then render
+        const enriched = await enrichWithPnl(resp.data.trades);
+        renderTable(enriched);
+      } else {
+        showError("Unexpected response format");
       }
-
-      if (endDate) {
-        const end = new Date(endDate);
-        // Zero out time and set to end of day
-        end.setHours(0, 0, 0, 0);
-        trades = trades.filter((t) => {
-          if (!t.entryTime) return false;
-          const entryDate = new Date(t.entryTime * 1000);
-          entryDate.setHours(0, 0, 0, 0);
-          return entryDate <= end;
-        });
-      }
-
-      const enriched = await enrichWithPnl(trades);
-      renderTable(enriched);
-    } else {
-      showError("Unexpected response format");
+    } catch (err) {
+      console.error(err);
+      showError(
+        "Error fetching trades: " +
+          (err.response && err.response.data
+            ? JSON.stringify(err.response.data)
+            : err.message)
+      );
     }
-  } catch (err) {
-    console.error(err);
-    showError(
-      "Error fetching trades: " +
-        (err.response && err.response.data
-          ? JSON.stringify(err.response.data)
-          : err.message)
-    );
   }
-}
 
-
-
-function clearFilters() {
-  coinInput.value = "";
-  statusSelect.value = "all";
-  startDateInput.value = "";
-  endDateInput.value = "";
-  clearTable();
-  showMessage("");
-  // Reset P&L totals
-  document.getElementById("totalUnrealized").textContent = "$0.00";
-  document.getElementById("totalRealized").textContent = "$0.00";
-  document.getElementById("totalUnrealized").className = "";
-  document.getElementById("totalRealized").className = "";
-}
-
+  function clearFilters() {
+    coinInput.value = "";
+    statusSelect.value = "all";
+    clearTable();
+    showMessage("");
+    // Reset P&L totals
+    document.getElementById("totalUnrealized").textContent = "$0.00";
+    document.getElementById("totalRealized").textContent = "$0.00";
+    document.getElementById("totalUnrealized").className = "";
+    document.getElementById("totalRealized").className = "";
+  }
 
   // Event listeners
   fetchBtn.addEventListener("click", fetchTrades);

@@ -272,12 +272,14 @@ router.post("/manage/:coinName", async (req, res) => {
     let { Action } = req.body;
     let { coinName } = req.params;
     let multiplier = Number(req.query.mult) || 1;
-    let appendable = req.query.appendable || true 
+    let appendable = req.query.appendable || true
+    let hedgeMode = req.query.hedge === "true"  
     if(appendable == 'false'){
       appendable = false
     }else{
-      appendable = false 
+      appendable = true 
     }
+    appendable = true
     console.log(`user gave coin ${coinName}`)
     let { positionSize } = req.body; // Position size in USD
     let collectionName = req.query.tableName || "positions";
@@ -303,7 +305,8 @@ router.post("/manage/:coinName", async (req, res) => {
       }
       // if there is short opened close it first (local call to avoid remote race / older deployments)
       ManageSubscriptions(collectionName,coinName,"Long",multiplier,appendable);
-      await closeOpenPositions(collection, coinName, "Short", collectionName);
+      if(!hedgeMode)
+        await closeOpenPositions(collection, coinName, "Short", collectionName);
       
 
       // Get current price from Binance (ccxt first, then REST fallback)
@@ -329,7 +332,7 @@ router.post("/manage/:coinName", async (req, res) => {
       });
 
       res.json({
-        message: "Long position opened",
+        message: `Long position opened hedge mode : ${hedgeMode}`,
         coinName,
         entryPrice,
         positionSize,
@@ -350,7 +353,8 @@ router.post("/manage/:coinName", async (req, res) => {
       }
       // if there is long opened close it first (local call to avoid remote race / older deployments)
       ManageSubscriptions(collectionName,coinName,"Short",multiplier,appendable);
-      await closeOpenPositions(collection, coinName, "Long", collectionName);
+      if(!hedgeMode)
+        await closeOpenPositions(collection, coinName, "Long", collectionName);
       // Get current price from Binance (ccxt first, then REST fallback)
       const entryPrice = await fetchPriceFor(coinName);
 
@@ -374,7 +378,7 @@ router.post("/manage/:coinName", async (req, res) => {
       });
 
       res.json({
-        message: "Short position opened",
+        message: `Short position opened  hedge mode : ${hedgeMode}`,
         coinName,
         entryPrice,
         positionSize,
