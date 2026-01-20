@@ -1,9 +1,9 @@
 const axios = require('axios');
-const baseURL = "https://diy.itsarex.com/manage/DOGE/100"; // Replace with actual base URL
-//let baseURL = "http://localhost:5007"; // Replace with actual base URL
-const coin = "DOGE"
+//const baseURL = "https://adaptive-mrc.vercel.app"; // Replace with actual base URL
+let baseURL = "http://localhost:5007"; // Replace with actual base URL
+const coin = "ZEC"
 let payload = {
-    "Action": "DIY Stop",
+    "Action": "Extra",
     strategy : "YMA", 
     id : 1, 
     coin: "SENT",
@@ -28,7 +28,7 @@ console.log(`Sending request to ${baseURL}/api/action/${coin} with payload:`, pa
 //     console.error(err);
 // });
 
-axios.post(baseURL,payload).then(res => {
+axios.post(subscribe,payload).then(res => {
     console.log(res.data)
 } ).catch(err => {
     console.error(err);

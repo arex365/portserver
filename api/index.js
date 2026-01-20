@@ -30,6 +30,16 @@ app.use(subs)
 app.get('/control', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'control.html'));
 });
+app.get('/chart', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'chart.html'));
+});
+app.get('/bubble', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'bubble.html'));
+});
+app.get('/stack', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'stack.html'));
+});
+app.get("/brick",(req,res)=>res.sendFile(path.join(__dirname, 'public', 'brick.html')))
 app.get("/admin",(req,res)=>res.sendFile(path.join(__dirname, 'public', 'sub.html')))
 
 // Connect to MongoDB and start server

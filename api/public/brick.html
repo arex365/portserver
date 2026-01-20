@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Brick Chart - Trade by Trade P&L</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    body { background-color: #f8f9fa; }
+    .container { max-width: 1400px; }
+    
+    #brickContainer {
+      background: white;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 20px;
+      min-height: 600px;
+    }
+
+    #brickTable {
+      display: flex;
+      gap: 15px;
+      align-items: flex-end;
+      min-height: 500px;
+      position: relative;
+    }
+
+    .coin-column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      min-width: 80px;
+      position: relative;
+    }
+
+    .coin-label {
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: #212529;
+      padding: 8px 4px;
+      text-align: center;
+      word-wrap: break-word;
+      max-width: 80px;
+    }
+
+    .brick-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      position: relative;
+      min-height: 400px;
+      justify-content: center;
+    }
+
+    .center-line {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: #6c757d;
+      opacity: 0.3;
+      top: 50%;
+      left: 0;
+    }
+
+    .brick {
+      width: 60px;
+      min-height: 20px;
+      border: 1px solid rgba(0,0,0,0.2);
+      border-radius: 3px;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: bold;
+      color: white;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    .brick.positive {
+      background: linear-gradient(135deg, #198754, #20c997);
+    }
+
+    .brick.negative {
+      background: linear-gradient(135deg, #dc3545, #e85d6b);
+    }
+
+    .brick:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 10;
+    }
+
+    .brick-tooltip {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: normal;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      display: none;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(100% + 8px);
+    }
+
+    .brick:hover .brick-tooltip {
+      display: block;
+    }
+
+    .brick-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: rgba(0, 0, 0, 0.9);
+    }
+    
+    .legend-item { 
+      display: inline-flex; 
+      align-items: center; 
+      gap: 0.4rem; 
+      margin-right: 1rem; 
+    }
+    
+    .legend-swatch { 
+      width: 14px; 
+      height: 14px; 
+      border-radius: 3px; 
+      display: inline-block; 
+    }
+
+    .no-data {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 400px;
+      color: #6c757d;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container my-4">
+  <h2 class="mb-3">
+    <i class="bi bi-bricks me-2"></i>Brick Chart - Trade by Trade P&L
+  </h2>
+
+  <!-- Controls -->
+  <div class="row g-2 mb-3">
+    <div class="col-md-3">
+      <label class="form-label">Table</label>
+      <select id="tableSelect" class="form-select"></select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Start Date</label>
+      <input type="date" id="startDateInput" class="form-control">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">End Date</label>
+      <input type="date" id="endDateInput" class="form-control">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label">Max Trades/Coin</label>
+      <input type="number" id="maxTradesInput" class="form-control" value="50" min="1" max="500">
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="sortToggle">
+        <label class="form-check-label" for="sortToggle">
+          Sort by P&L
+        </label>
+      </div>
+    </div>
+    <div class="col-md-2 d-flex align-items-end gap-2">
+      <button id="loadBtn" class="btn btn-primary flex-grow-1">
+        <i class="bi bi-bricks me-1"></i> Load Bricks
+      </button>
+      <button id="clearBtn" class="btn btn-secondary">Clear</button>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="mb-3">
+    <span class="legend-item"><span class="legend-swatch" style="background:#198754"></span>Winning Trade</span>
+    <span class="legend-item"><span class="legend-swatch" style="background:#dc3545"></span>Losing Trade</span>
+    <small class="text-muted ms-3">Each brick represents one closed trade. Hover to see details. <strong>Sort disabled:</strong> latest trades on top.</small>
+  </div>
+
+  <!-- Brick Chart -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div id="brickContainer">
+        <div id="brickTable">
+          <div class="no-data">Load data to see bricks...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="row g-3 mb-3">
+    <div class="col-md-3">
+      <div class="card bg-primary text-white">
+        <div class="card-body">
+          <h6>Total Coins</h6>
+          <h3 id="totalCoins">0</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-info text-white">
+        <div class="card-body">
+          <h6>Total Trades</h6>
+          <h3 id="totalTrades">0</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-success text-white">
+        <div class="card-body">
+          <h6>Total Wins</h6>
+          <h3 id="totalWins">$0.00</h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card bg-danger text-white">
+        <div class="card-body">
+          <h6>Total Losses</h6>
+          <h3 id="totalLosses">$0.00</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div id="statusMsg" class="alert d-none"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="/brick.js"></script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trading Charts</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body { background-color: #f8f9fa; }
+    .container { max-width: 1200px; }
+  </style>
+</head>
+<body>
+
+<div class="container my-4">
+  <h2 class="mb-4">
+    <i class="bi bi-bar-chart-line me-2"></i>Trading Performance Charts
+  </h2>
+
+  <!-- Filters -->
+  <div class="row g-2 mb-4">
+    <div class="col-md-2">
+      <select id="tableSelect" class="form-select"></select>
+    </div>
+
+    <div class="col-md-2">
+      <input type="text" id="coinInput" class="form-control" placeholder="Coin Name">
+    </div>
+
+    <div class="col-md-2">
+      <select id="statusSelect" class="form-select">
+        <option value="all">All Status</option>
+        <option value="open">Open</option>
+        <option value="close">Closed</option>
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <input type="date" id="startDateInput" class="form-control">
+    </div>
+
+    <div class="col-md-2">
+      <input type="date" id="endDateInput" class="form-control">
+    </div>
+
+    <div class="col-md-2 d-flex gap-1">
+      <button id="loadChartBtn" class="btn btn-primary flex-grow-1">
+        <i class="bi bi-search me-1"></i>Load Chart
+      </button>
+      <button id="clearBtn" class="btn btn-secondary">
+        Clear
+      </button>
+    </div>
+  </div>
+
+  <!-- Chart -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <canvas id="pnlChart" height="120"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="/chart.js"></script>
+</body>
+</html>
