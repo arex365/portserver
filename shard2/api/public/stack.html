@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Stack Chart</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="/global.css">
+
+  <style>
+    .brick {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+      transition: transform 0.2s;
+      cursor: pointer;
+    }
+
+    .brick:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .brick.positive {
+      border-left: 4px solid #10b981;
+    }
+
+    .brick.negative {
+      border-left: 4px solid #ef4444;
+    }
+
+    .brick-coin {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .brick-pnl {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin: 0.2rem 0;
+    }
+
+    .brick-pnl.positive {
+      color: #10b981;
+    }
+
+    .brick-pnl.negative {
+      color: #ef4444;
+    }
+
+    .brick-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+    }
+
+    .brick-detail {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brick-detail span {
+      font-size: 0.75rem;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Global Nav -->
+  <script src="/settings.js"></script>
+  <script src="/nav.js"></script>
+
+  <div class="container my-4">
+    <!-- Chart Tabs -->
+    <script src="/chart_tabs.js"></script>
+
+    <h2 class="mb-3">
+      <i class="bi bi-stack me-2"></i>Coin Stack
+    </h2>
+
+    <!-- Controls -->
+    <div class="card mb-4">
+      <div class="card-body">
+        <div class="row g-2">
+          <div class="col-md-3">
+            <label class="form-label text-muted small">Table</label>
+            <select id="tableSelect" class="form-select"></select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label text-muted small">Start Date</label>
+            <input type="date" id="startDateInput" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label text-muted small">End Date</label>
+            <input type="date" id="endDateInput" class="form-control">
+          </div>
+          <div class="col-md-3 d-flex align-items-end gap-2">
+            <button id="loadBtn" class="btn btn-primary flex-grow-1">
+              <i class="bi bi-stack me-1"></i> Load Data
+            </button>
+            <button id="clearBtn" class="btn btn-outline-secondary">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="row">
+      <!-- Bricks Column -->
+      <div class="col-md-4">
+        <div class="card h-100">
+          <div class="card-header">
+            <h6 class="mb-0"><i class="bi bi-list-ul me-2"></i>Rankings</h6>
+          </div>
+          <div class="card-body p-2" id="bricksContainer" style="max-height: 600px; overflow-y: auto;">
+            <div class="text-center py-5 text-muted">Load data to see rankings</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chart Column -->
+      <div class="col-md-8">
+        <div class="card h-100">
+          <div class="card-header">
+            <h6 class="mb-0"><i class="bi bi-pie-chart-fill me-2"></i>Overview</h6>
+          </div>
+          <div class="card-body">
+            <canvas id="coinPnlChart" height="120"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div id="statusMsg" class="alert d-none mt-3"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/stack.js"></script>
+</body>
+
+</html>
