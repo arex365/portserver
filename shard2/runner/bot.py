@@ -31,8 +31,8 @@ LIMIT = 300
 # Coins to process
 COINS = ["ZEC", "ICP", "ENA"]
 
-# Refresh interval in seconds (3 minutes)
-REFRESH_SECONDS = 3 * 60
+# Safety delay (seconds) to wait after candle close
+SAFETY_DELAY = 20
 
 # API server URL for managing positions
 API_BASE_URL = "http://localhost:5007"
@@ -312,7 +312,7 @@ def main():
     out_dir = Path(__file__).resolve().parent / "outputs"
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"[{datetime.now()}] Starting bot: coins={COINS}, refresh={REFRESH_SECONDS}s")
+    print(f"[{datetime.now()}] Starting bot: coins={COINS}, schedule=15m-candle-close+{SAFETY_DELAY}s")
 
     while True:
         start = time.time()
@@ -321,8 +321,23 @@ def main():
             time.sleep(max(exchange.rateLimit / 1000, 0.5))
 
         elapsed = time.time() - start
-        to_sleep = max(0, REFRESH_SECONDS - elapsed)
-        print(f"[{datetime.now()}] Cycle complete, sleeping {to_sleep:.1f}s")
+
+        # Calculate next 15-minute candle close (quarters: :00, :15, :30, :45) in UTC,
+        # then add a SAFETY_DELAY to avoid racing the candle boundary.
+        now = datetime.now(timezone.utc)
+        mins = now.minute
+        next_min = ((mins // 15) + 1) * 15
+        if next_min == 60:
+            next_dt = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        else:
+            next_dt = now.replace(minute=next_min, second=0, microsecond=0)
+
+        scheduled_time = next_dt + timedelta(seconds=SAFETY_DELAY)
+        to_sleep = (scheduled_time - now).total_seconds()
+        if to_sleep < 0:
+            to_sleep = 0
+
+        print(f"[{datetime.now()}] Cycle complete, sleeping {to_sleep:.1f}s until {scheduled_time.isoformat()}")
         time.sleep(to_sleep)
 
 
