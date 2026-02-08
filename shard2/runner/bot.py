@@ -29,7 +29,7 @@ COLS = 20
 LIMIT = 300
 
 # Coins to process
-COINS = ["ZEC", "ICP", "ENA"]
+COINS = ["ZEC", "ICP", "ENA","BAT","VET","HOOK"]
 
 # Safety delay (seconds) to wait after candle close
 SAFETY_DELAY = 20
@@ -232,7 +232,7 @@ def process_coin(coin: str, out_dir: Path):
             is_green_cup = cup_fill > 0  # Green = bullish (positive fill)
             
             if is_green_cup:
-                print(f"[{datetime.now()}] {coin}: Latest complete cup is GREEN (bullish), fill={cup_fill:.2f}")
+                print(f"[{datetime.now()}] {coin}: Latest complete cup is GREEN (bullish), fill={cup_fill:.5f}")
                 # Check if long position already exists
                 if check_long_position_exists(coin):
                     print(f"[{datetime.now()}] {coin}: Long position already exists in {TABLE_NAME}, skipping.")
@@ -243,7 +243,7 @@ def process_coin(coin: str, out_dir: Path):
                 if check_short_position_exists(coin):
                     print(f"[{datetime.now()}] {coin}: Short position exists but latest cup is green, no action.")
             else:
-                print(f"[{datetime.now()}] {coin}: Latest complete cup is RED (bearish), fill={cup_fill:.2f}")
+                print(f"[{datetime.now()}] {coin}: Latest complete cup is RED (bearish), fill={cup_fill:.5f}")
                 # Check if short position already exists
                 if check_short_position_exists(coin):
                     print(f"[{datetime.now()}] {coin}: Short position already exists in {TABLE_NAME}, skipping.")
@@ -284,7 +284,7 @@ def process_coin(coin: str, out_dir: Path):
                     ax.text(
                         c + 0.5,
                         r + 0.5,
-                        f"{date.strftime('%-d-%b')}\n{o_price:.2f}\n{c_price:.2f}",
+                        f"{date.strftime('%-d-%b')}\n{o_price:.5f}\n{c_price:.5f}",
                         ha="center",
                         va="center",
                         fontsize=6,
