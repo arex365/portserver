@@ -4,8 +4,6 @@
 import ccxt
 import pandas as pd
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')  # Non-interactive backend, no display
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta, timezone
 import time
@@ -16,12 +14,9 @@ import traceback
 import requests
 import json
 
-print(f"[STARTUP] Imports loaded successfully at {datetime.now()}")
-
 # =====================
 # PARAMETERS
 # =====================
-print(f"[STARTUP] Loading parameters")
 TIMEFRAME = "15m"
 CUP_SIZE_PCT = 2.0
 MONTHS = 1
@@ -38,21 +33,14 @@ REFRESH_SECONDS = 3 * 60
 API_BASE_URL = "http://localhost:5007"
 TABLE_NAME = "MAZE"
 POSITION_SIZE = 100
-print(f"[STARTUP] Parameters loaded")
 
 # =====================
 # EXCHANGE SETUP
 # =====================
-try:
-    exchange = ccxt.binance({
-        "enableRateLimit": True,
-    })
-    exchange.load_markets()
-    print(f"[{datetime.now()}] Exchange initialized successfully")
-except Exception as e:
-    print(f"[{datetime.now()}] ERROR initializing exchange: {e}")
-    print(traceback.format_exc())
-    exchange = None
+exchange = ccxt.okx({
+    "enableRateLimit": True,
+})
+exchange.load_markets()
 
 
 def check_long_position_exists(coin: str) -> bool:
@@ -116,9 +104,9 @@ def fetch_ohlcv_all(symbol: str):
 
 def process_coin(coin: str, out_dir: Path):
     try:
-        symbol = f"{coin}/USDT"
+        symbol = f"{coin}/USDT:USDT"
         if symbol not in exchange.symbols:
-            alt = f"{coin}/BUSD"
+            alt = f"{coin}/USDT"
             if alt in exchange.symbols:
                 symbol = alt
             else:
@@ -182,77 +170,72 @@ def process_coin(coin: str, out_dir: Path):
                     break
 
         complete_cups = [cup for cup in cups if abs(cup["fill"]) >= CUP_SIZE_PCT]
-        
-        # Check position for every coin (regardless of complete cups)
-        if len(all_ohlcv) > 0:
-            latest_candle = all_ohlcv[-1]
-            latest_close = latest_candle[4]
-            latest_open = latest_candle[1]
-            is_green_candle = latest_close > latest_open
-            
-            if is_green_candle:
-                print(f"[{datetime.now()}] {coin}: Latest candle is GREEN (bullish)")
-                if check_long_position_exists(coin):
-                    print(f"[{datetime.now()}] {coin}: Long position already exists in {TABLE_NAME}, skipping.")
-                else:
-                    print(f"[{datetime.now()}] {coin}: No long position found, opening one...")
-                    open_long_position(coin)
-            else:
-                print(f"[{datetime.now()}] {coin}: Latest candle is RED (bearish)")
-        
         if not complete_cups:
             print(f"[{datetime.now()}] No complete cups for {symbol}.")
+            return
+
+        # Check the latest (last) completed cup's side
+        latest_cup = complete_cups[-1]
+        cup_fill = latest_cup["fill"]
+        is_green = cup_fill > 0  # Green = bullish (positive fill)
+
+        if is_green:
+            print(f"[{datetime.now()}] {coin}: Latest cup is GREEN (bullish), fill={cup_fill:.2f}")
+            # Check if long position already exists
+            if check_long_position_exists(coin):
+                print(f"[{datetime.now()}] {coin}: Long position already exists in {TABLE_NAME}, skipping.")
+            else:
+                print(f"[{datetime.now()}] {coin}: No long position found, opening one...")
+                open_long_position(coin)
         else:
-            rows = max(1, int(np.ceil(len(complete_cups) / COLS)))
-            fig, ax = plt.subplots(figsize=(COLS, rows))
-            ax.set_xlim(0, COLS)
-            ax.set_ylim(0, rows)
-            ax.set_aspect("equal")
-            ax.axis("off")
+            print(f"[{datetime.now()}] {coin}: Latest cup is RED (bearish), fill={cup_fill:.2f}")
 
-            for i, cup in enumerate(complete_cups):
-                fill = cup["fill"]
-                o_price = cup["open"]
-                c_price = cup["close"]
-                date = cup["date"]
+        rows = max(1, int(np.ceil(len(complete_cups) / COLS)))
+        fig, ax = plt.subplots(figsize=(COLS, rows))
+        ax.set_xlim(0, COLS)
+        ax.set_ylim(0, rows)
+        ax.set_aspect("equal")
+        ax.axis("off")
 
-                r = rows - 1 - i // COLS
-                c = i % COLS
+        for i, cup in enumerate(complete_cups):
+            fill = cup["fill"]
+            o_price = cup["open"]
+            c_price = cup["close"]
+            date = cup["date"]
 
-                intensity = min(abs(fill) / CUP_SIZE_PCT, 1.0)
-                color = (0.0, intensity, 0.0) if fill > 0 else (intensity, 0.0, 0.0)
+            r = rows - 1 - i // COLS
+            c = i % COLS
 
-                ax.add_patch(plt.Rectangle((c, r), 1, 1, color=color))
+            intensity = min(abs(fill) / CUP_SIZE_PCT, 1.0)
+            color = (0.0, intensity, 0.0) if fill > 0 else (intensity, 0.0, 0.0)
 
-                if o_price is not None and c_price is not None and date is not None:
-                    ax.text(
-                        c + 0.5,
-                        r + 0.5,
-                        f"{date.strftime('%-d-%b')}\n{o_price:.2f}\n{c_price:.2f}",
-                        ha="center",
-                        va="center",
-                        fontsize=6,
-                        color="white",
-                        weight="bold",
-                    )
+            ax.add_patch(plt.Rectangle((c, r), 1, 1, color=color))
 
-            plt.title(f"{symbol} {TIMEFRAME} Bucket-Fill Chart (Binance)", fontsize=14)
-            plt.subplots_adjust(left=0.01, right=0.99, top=0.95, bottom=0.01)
+            if o_price is not None and c_price is not None and date is not None:
+                ax.text(
+                    c + 0.5,
+                    r + 0.5,
+                    f"{date.strftime('%-d-%b')}\n{o_price:.2f}\n{c_price:.2f}",
+                    ha="center",
+                    va="center",
+                    fontsize=6,
+                    color="white",
+                    weight="bold",
+                )
 
-            out_path = out_dir / f"{coin}.png"
-            plt.savefig(out_path, format="png", dpi=150)
-            plt.close(fig)
-            print(f"[{datetime.now()}] Saved chart for {coin} -> {out_path}")
+        plt.title(f"{symbol} {TIMEFRAME} Bucket-Fill Chart (OKX)", fontsize=14)
+        plt.subplots_adjust(left=0.01, right=0.99, top=0.95, bottom=0.01)
+
+        out_path = out_dir / f"{coin}.png"
+        plt.savefig(out_path, format="png", dpi=150)
+        plt.close(fig)
+        print(f"[{datetime.now()}] Saved chart for {coin} -> {out_path}")
 
     except Exception:
         print(f"[{datetime.now()}] Error processing {coin}:\n" + traceback.format_exc())
 
 
 def main():
-    if not exchange:
-        print(f"[{datetime.now()}] Exchange not initialized, exiting.")
-        return
-    
     out_dir = Path(__file__).resolve().parent / "outputs"
     out_dir.mkdir(parents=True, exist_ok=True)
 
