@@ -1022,6 +1022,168 @@ router.get("/getbest", async (req, res) => {
 
 
 
+// Partial close route: closes a percentage of an open position
+router.get("/partialclose", async (req, res) => {
+  try {
+    const { coinName, percSize, tableName } = req.query;
+    const collectionName = tableName || "positions";
+
+    // Validate input
+    if (!coinName || percSize === undefined) {
+      return res.status(400).json({ error: "coinName and percSize are required" });
+    }
+
+    const percValue = Number(percSize);
+    if (isNaN(percValue) || percValue <= 0 || percValue > 100) {
+      return res.status(400).json({ error: "percSize must be a number between 0 and 100" });
+    }
+
+    // Validate collectionName
+    if (!/^[A-Za-z0-9_]+$/.test(collectionName)) {
+      return res.status(400).json({ error: "Invalid table name" });
+    }
+
+    const collection = getCollection(collectionName);
+
+    // 1) Fetch open position for the coin
+    const openPosition = await collection.findOne({
+      coinName: { $regex: `^${coinName}$`, $options: "i" },
+      status: "open",
+    });
+
+    if (!openPosition) {
+      return res.status(404).json({ message: "No open position found for " + coinName });
+    }
+
+    // 2) Calculate partial position size
+    const originalPositionSize = Number(openPosition.positionSize);
+    const partialPositionSize = originalPositionSize * (percValue / 100);
+    const remainingPositionSize = originalPositionSize - partialPositionSize;
+
+    // 3) Fetch current market price
+    const exitPrice = await fetchPriceFor(coinName);
+    const exitTime = Math.floor(Date.now() / 1000);
+
+    // 4) Calculate PnL for the partial position
+    const entryPrice = Number(openPosition.entryPrice);
+    const partialQuantity = partialPositionSize / entryPrice;
+    let partialGrossPnl = 0;
+
+    if (openPosition.positionSide === "Long") {
+      partialGrossPnl = (exitPrice - entryPrice) * partialQuantity;
+    } else {
+      partialGrossPnl = (entryPrice - exitPrice) * partialQuantity;
+    }
+
+    const partialFee = partialPositionSize * FEE_RATE * 2; // Entry and exit fees
+    const partialPnl = partialGrossPnl - partialFee;
+
+    // 5) Calculate min/max profit from historical candles for the partial position
+    let maxProfit = 0;
+    let minProfit = 0;
+    let maxProfitTime = null;
+    let minProfitTime = null;
+
+    try {
+      const candles = await fetchHistoricalCandles(
+        coinName,
+        openPosition.entryTime,
+        exitTime
+      );
+      const profitExtremes = calculateMinMaxProfitFromCandles(
+        { ...openPosition, positionSize: partialPositionSize },
+        candles
+      );
+      maxProfit = profitExtremes.maxProfit;
+      minProfit = profitExtremes.minProfit;
+      maxProfitTime = profitExtremes.maxProfitTime;
+      minProfitTime = profitExtremes.minProfitTime;
+
+      // Also consider the exit price profit
+      const exitProfit = calculateCurrentProfit(
+        { ...openPosition, positionSize: partialPositionSize },
+        exitPrice
+      );
+      if (exitProfit > maxProfit) {
+        maxProfit = exitProfit;
+        maxProfitTime = exitTime;
+      }
+      if (exitProfit < minProfit) {
+        minProfit = exitProfit;
+        minProfitTime = exitTime;
+      }
+    } catch (err) {
+      console.warn(
+        `Failed to fetch candles for ${coinName} in partial close:`,
+        err.message
+      );
+      // Fallback: use current profit calculation
+      const exitProfit = calculateCurrentProfit(
+        { ...openPosition, positionSize: partialPositionSize },
+        exitPrice
+      );
+      maxProfit = exitProfit;
+      minProfit = exitProfit;
+      maxProfitTime = exitTime;
+      minProfitTime = exitTime;
+    }
+
+    // 6) Create closed position record for partial close
+    const closedResult = await collection.insertOne({
+      entryTime: openPosition.entryTime,
+      exitTime,
+      coinName: openPosition.coinName,
+      positionSide: openPosition.positionSide,
+      positionSize: partialPositionSize,
+      entryPrice,
+      exitPrice,
+      status: "close",
+      grossPnl: partialGrossPnl,
+      fee: partialFee,
+      pnl: partialPnl,
+      maxProfit,
+      minProfit,
+      maxProfitTime: typeof maxProfitTime !== "undefined" ? maxProfitTime : null,
+      minProfitTime: typeof minProfitTime !== "undefined" ? minProfitTime : null,
+      partialCloseOf: openPosition._id, // Reference to original position
+    });
+
+    // 7) Update original open position with reduced position size
+    const updateResult = await collection.updateOne(
+      { _id: openPosition._id },
+      {
+        $set: {
+          positionSize: remainingPositionSize,
+        },
+      }
+    );
+
+    if (updateResult.matchedCount !== 1) {
+      return res.status(500).json({ error: "Failed to update original position" });
+    }
+
+    res.json({
+      message: "Partial close completed successfully",
+      coinName,
+      side: openPosition.positionSide,
+      originalPositionSize: originalPositionSize.toFixed(2),
+      partialPositionSize: partialPositionSize.toFixed(2),
+      remainingPositionSize: remainingPositionSize.toFixed(2),
+      percSize,
+      entryPrice,
+      exitPrice,
+      partialGrossPnl: partialGrossPnl.toFixed(2),
+      partialFee: partialFee.toFixed(2),
+      partialPnl: partialPnl.toFixed(2),
+      closedPositionId: closedResult.insertedId,
+      updatedOpenPositionId: openPosition._id,
+    });
+  } catch (error) {
+    console.error("Error in partial close:", error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 function GetPositionsCount(coinName,tableName,side){
   return router.get(`/getPositionCount/${coinName}/${tableName}?side=${side}`, async (req, res) => {
     try {

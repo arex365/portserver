@@ -25,11 +25,16 @@
           <option value="Short">Open Short</option>
           <option value="CloseLong">Close Long</option>
           <option value="CloseShort">Close Short</option>
+          <option value="PartialClose">Partial Close</option>
         </select>
       </label>
 
       <label>Position Size (USD):
         <input id="size" placeholder="1000" />
+      </label>
+
+      <label id="percSizeLabel" style="display: none;">Close Percentage (%):
+        <input id="percSize" type="number" min="0.01" max="99.99" step="0.01" placeholder="50" />
       </label>
 
       <button id="submit">Submit</button>
