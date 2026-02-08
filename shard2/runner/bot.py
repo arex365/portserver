@@ -24,7 +24,7 @@ print(f"[STARTUP] Imports loaded successfully at {datetime.now()}")
 print(f"[STARTUP] Loading parameters")
 TIMEFRAME = "15m"
 CUP_SIZE_PCT = 2.0
-MONTHS = 1
+START_DATE = datetime(2026, 1, 9, tzinfo=timezone.utc)  # Default: 9 Jan 2026
 COLS = 20
 LIMIT = 300
 
@@ -140,7 +140,7 @@ def open_short_position(coin: str) -> bool:
 
 
 def fetch_ohlcv_all(symbol: str):
-    since = int((datetime.now(timezone.utc) - timedelta(days=30 * MONTHS)).timestamp() * 1000)
+    since = int(START_DATE.timestamp() * 1000)
     all_ohlcv = []
 
     while True:
