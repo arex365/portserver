@@ -76,6 +76,27 @@ def check_long_position_exists(coin: str) -> bool:
         return False
 
 
+def check_short_position_exists(coin: str) -> bool:
+    """Check if a short position already exists for this coin in MAZE table."""
+    try:
+        url = f"{API_BASE_URL}/positioncount"
+        params = {
+            "coinName": coin,
+            "positionSide": "Short",
+            "status": "open",
+            "tableName": TABLE_NAME,
+        }
+        resp = requests.get(url, params=params, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            count = data.get("count", 0)
+            return count > 0
+        return False
+    except Exception as e:
+        print(f"[{datetime.now()}] Error checking short position for {coin}: {e}")
+        return False
+
+
 def open_long_position(coin: str) -> bool:
     """Open a long position via the /manage API."""
     try:
@@ -94,6 +115,27 @@ def open_long_position(coin: str) -> bool:
             return False
     except Exception as e:
         print(f"[{datetime.now()}] Error opening long position for {coin}: {e}")
+        return False
+
+
+def open_short_position(coin: str) -> bool:
+    """Open a short position via the /manage API."""
+    try:
+        url = f"{API_BASE_URL}/manage/{coin}"
+        payload = {
+            "Action": "Short",
+            "positionSize": POSITION_SIZE,
+        }
+        params = {"tableName": TABLE_NAME}
+        resp = requests.post(url, json=payload, params=params, timeout=5)
+        if resp.status_code == 200:
+            print(f"[{datetime.now()}] ✓ Opened short position for {coin} in {TABLE_NAME}")
+            return True
+        else:
+            print(f"[{datetime.now()}] ✗ Failed to open short position for {coin}: {resp.status_code} {resp.text}")
+            return False
+    except Exception as e:
+        print(f"[{datetime.now()}] Error opening short position for {coin}: {e}")
         return False
 
 
@@ -183,22 +225,36 @@ def process_coin(coin: str, out_dir: Path):
 
         complete_cups = [cup for cup in cups if abs(cup["fill"]) >= CUP_SIZE_PCT]
         
-        # Check position for every coin (regardless of complete cups)
-        if len(all_ohlcv) > 0:
-            latest_candle = all_ohlcv[-1]
-            latest_close = latest_candle[4]
-            latest_open = latest_candle[1]
-            is_green_candle = latest_close > latest_open
+        # Check position based on latest complete cup
+        if complete_cups:
+            latest_cup = complete_cups[-1]
+            cup_fill = latest_cup["fill"]
+            is_green_cup = cup_fill > 0  # Green = bullish (positive fill)
             
-            if is_green_candle:
-                print(f"[{datetime.now()}] {coin}: Latest candle is GREEN (bullish)")
+            if is_green_cup:
+                print(f"[{datetime.now()}] {coin}: Latest complete cup is GREEN (bullish), fill={cup_fill:.2f}")
+                # Check if long position already exists
                 if check_long_position_exists(coin):
                     print(f"[{datetime.now()}] {coin}: Long position already exists in {TABLE_NAME}, skipping.")
                 else:
                     print(f"[{datetime.now()}] {coin}: No long position found, opening one...")
                     open_long_position(coin)
+                # Close any short position if it exists
+                if check_short_position_exists(coin):
+                    print(f"[{datetime.now()}] {coin}: Short position exists but latest cup is green, no action.")
             else:
-                print(f"[{datetime.now()}] {coin}: Latest candle is RED (bearish)")
+                print(f"[{datetime.now()}] {coin}: Latest complete cup is RED (bearish), fill={cup_fill:.2f}")
+                # Check if short position already exists
+                if check_short_position_exists(coin):
+                    print(f"[{datetime.now()}] {coin}: Short position already exists in {TABLE_NAME}, skipping.")
+                else:
+                    print(f"[{datetime.now()}] {coin}: No short position found, opening one...")
+                    open_short_position(coin)
+                # Close any long position if it exists
+                if check_long_position_exists(coin):
+                    print(f"[{datetime.now()}] {coin}: Long position exists but latest cup is red, no action.")
+        else:
+            print(f"[{datetime.now()}] {coin}: No complete cups available for position decision.")
         
         if not complete_cups:
             print(f"[{datetime.now()}] No complete cups for {symbol}.")
