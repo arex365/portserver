@@ -1,114 +1,144 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trading Dashboard</title>
-    <button id="export-csv" class="btn btn-success">
-      <i class="bi bi-download me-1"></i> Export CSV
-    </button>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <style>
-    .status-badge.status-open { color: orange; }
-    .status-badge.status-close { color: green; }
-    .position-long { color: green; }
-    .position-short { color: red; }
-    .pnl-positive { color: green; font-weight: bold; }
-    .pnl-negative { color: red; font-weight: bold; }
-    body{
-      width: 100%;
+import ccxt
+from datetime import datetime
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Initialize exchange (using Binance as example)
+exchange = ccxt.binance({
+    'enableRateLimit': True,
+    'options': {'defaultType': 'spot'}
+})
+
+# Define parameters
+symbol = 'ICP/USDT'  # Change to your desired symbol
+timeframe = '1h'      # 1-hour candles (can change to '1m', '4h', '1d', etc.)
+since = exchange.parse8601('2026-01-01T00:00:00Z')
+
+# Fetch candles
+print(f"Fetching {symbol} candles from January 1st, 2026...")
+all_candles = []
+
+try:
+    while True:
+        candles = exchange.fetch_ohlcv(symbol, timeframe, since=since, limit=1000)
+        
+        if not candles:
+            break
+        
+        all_candles.extend(candles)
+        print(f"Fetched {len(candles)} candles, total: {len(all_candles)}")
+        
+        since = candles[-1][0] + 1  # Move to next batch
+        
+        # Stop if we reach today
+        if since > exchange.milliseconds():
+            break
+
+except ccxt.ExchangeError as e:
+    print(f"Exchange error: {e}")
+except Exception as e:
+    print(f"Error: {e}")
+
+# Convert to DataFrame
+df = pd.DataFrame(
+    all_candles,
+    columns=['timestamp', 'open', 'high', 'low', 'close', 'volume']
+)
+
+# Convert timestamp to datetime
+df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+df['date'] = df['timestamp'].dt.date
+
+# Separate into red and green candles
+red_candles = []
+green_candles = []
+
+# Classify candles
+for _, row in df.iterrows():
+    candle = {
+        'timestamp': row['timestamp'],
+        'date': row['date'],
+        'open': row['open'],
+        'high': row['high'],
+        'low': row['low'],
+        'close': row['close'],
+        'volume': row['volume']
     }
-    .container{
-      width: 90% !important;
-    }
-td.session-london {
-  background-color: #cce5ff !important;
-}
+    
+    if row['close'] >= row['open']:
+        green_candles.append(candle)
+    else:
+        red_candles.append(candle)
 
-td.session-newyork {
-  background-color: #d4edda !important;
-}
+print(f"\nTotal candles fetched: {len(df)}")
+print(f"Green candles (bullish): {len(green_candles)}")
+print(f"Red candles (bearish): {len(red_candles)}")
 
-td.session-tokyo {
-  background-color: #fff3cd !important;
-}
-    .loading-spinner { display: none; margin-left: 0.5rem; }
-  </style>
-</head>
-<body class="bg-light">
-  <div class="container my-4" style="width: 90%;">
-    <h1 class="mb-4">Trading Dashboard</h1>
+# Calculate net size % for each array
+green_size_total = 0
+for candle in green_candles:
+    size_pct = ((candle['close'] - candle['open']) / candle['open']) * 100
+    green_size_total += size_pct
 
-    <!-- Filters -->
-<div class="row g-2 mb-3"> 
-  <div class="col-md-2">
-     <select id="tableSelect" class="form-select"></select> </div> 
-     <div class="col-md-2"> 
-      <input type="text" id="coinInput" class="form-control" placeholder="Coin Name"> </div>
-       <div class="col-md-2"> <select id="statusSelect" class="form-select"> 
-        <option value="all">All Status</option> <option value="open">Open</option> 
-        <option value="close">Closed</option> </select> </div> <div class="col-md-2"> 
-          <input type="date" id="startDateInput" class="form-control"> </div> 
-          <div class="col-md-2"> <input type="date" id="endDateInput" class="form-control"> </div> 
-          <div class="col-md-2 d-flex gap-1"> <button id="fetchBtn" class="btn btn-primary flex-grow-1">Search</button> 
-            <button id="clearBtn" class="btn btn-secondary">Clear</button> 
-          </div> </div>
+red_size_total = 0
+for candle in red_candles:
+    size_pct = ((candle['close'] - candle['open']) / candle['open']) * 100
+    red_size_total += size_pct
 
+print(f"\nNet green size %: {green_size_total:.2f}%")
+print(f"Net red size %: {red_size_total:.2f}%")
 
-    <!-- Messages -->
-    <div id="message" class="alert d-none">
-      <span id="messageText"></span>
-      <div class="spinner-border spinner-border-sm loading-spinner" role="status"></div>
-    </div>
-    <!-- Action Buttons -->
-    <div class="mb-3 d-flex gap-2 flex-wrap">
-      <button id="updateProfitsBtn" class="btn btn-success">Update Profits</button>
-      <button id="recalculateHistoricalBtn" class="btn btn-warning">Recalculate Historical</button>
-      <button id="bulkDeleteBtn" class="btn btn-danger">Bulk Delete</button>
-      <button id="bestCoinsBtn" class="btn btn-info">Best Coins</button>
-    </div>
-    <!-- P&L Summary -->
-    <div class="mb-3">
-      <span>Total Unrealized: <strong id="totalUnrealized">$0.00</strong></span> |
-      <span>Total Realized: <strong id="totalRealized">$0.00</strong></span>
-    </div>
-    </div>
+# Calculate and print ratio
+if red_size_total != 0:
+    ratio = abs(green_size_total / red_size_total)
+    print(f"\nRatio G:R = {ratio:.2f}")
+else:
+    print(f"\nRatio G:R = infinite (no red candles)")
+print(f"\nFirst candle:")
+print(df.head(1))
+print(f"\nLast candle:")
+print(df.tail(1))
 
-    <!-- Table -->
-    <div class="table-responsive" style="width: 90%; margin: 0 auto;">
-      <table id="tradesTable" class="table table-hover">
-        <thead id="tableHead" class="table-dark"></thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
+# Optional: Save to CSV
+df.to_csv('candles.csv', index=False)
+print("\nCandles saved to 'candles.csv'")
 
-    <div id="emptyState" class="text-center text-muted d-none">
-      <i class="bi bi-inbox display-4"></i>
-      <h5 class="mt-2">No trades found</h5>
-    </div>
+# Calculate daily G:R ratio
+daily_ratios = []
+for date in df['date'].unique():
+    daily_df = df[df['date'] == date]
+    
+    green_sum = 0
+    red_sum = 0
+    
+    for _, row in daily_df.iterrows():
+        size_pct = ((row['close'] - row['open']) / row['open']) * 100
+        if row['close'] >= row['open']:
+            green_sum += size_pct
+        else:
+            red_sum += abs(size_pct)
+    
+    if red_sum != 0:
+        ratio = green_sum / red_sum
+    else:
+        ratio = 1.0 if green_sum > 0 else 0
+    
+    daily_ratios.append({'date': date, 'ratio': ratio})
 
+ratio_df = pd.DataFrame(daily_ratios)
 
-  </div>
-
-  <!-- Best Coins Modal -->
-  <div class="modal fade" id="bestCoinsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Best Performing Coins</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body" id="bestCoinsContent">
-          Loading...
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="/app.js"></script>
-  <script src="/export.js"></script>
-</body>
-</html>
+# Plot ratio over time
+plt.figure(figsize=(14, 6))
+plt.plot(ratio_df['date'], ratio_df['ratio'], marker='o', linewidth=2, markersize=4)
+plt.axhline(y=1.0, color='gray', linestyle='--', label='Neutral (1:1)')
+plt.axhline(y=0, color='red', linestyle='--', alpha=0.5, label='Fully Bearish')
+plt.xlabel('Date')
+plt.ylabel('G:R Ratio')
+plt.title(f'{symbol} Green:Red Candle Size Ratio Over Time')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.savefig('ratio_over_time.png', dpi=150)
+print(f"\nPlot saved to 'ratio_over_time.png'")
+plt.show()
