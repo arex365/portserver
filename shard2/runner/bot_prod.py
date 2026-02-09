@@ -144,6 +144,29 @@ def open_short_position(coin: str) -> bool:
         return False
 
 
+def add_extra_to_position(coin: str) -> bool:
+    """Add extra USD to an existing open position via the /manage API."""
+    try:
+        url = f"{API_BASE_URL}/manage/{coin}"
+        payload = {
+            "Action": "Extra",
+            "positionSize": POSITION_SIZE,
+        }
+        params = {"tableName": TABLE_NAME}
+        resp = requests.post(url, json=payload, params=params, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            side = data.get("side", "Unknown")
+            print(f"[{datetime.now()}] ✓ Added extra ${POSITION_SIZE} to {side} position for {coin} in {TABLE_NAME}")
+            return True
+        else:
+            print(f"[{datetime.now()}] ✗ Failed to add extra to position for {coin}: {resp.status_code} {resp.text}")
+            return False
+    except Exception as e:
+        print(f"[{datetime.now()}] Error adding extra to position for {coin}: {e}")
+        return False
+
+
 def fetch_ohlcv_all(symbol: str):
     since = int(START_DATE.timestamp() * 1000)
     all_ohlcv = []
@@ -261,13 +284,18 @@ def process_coin(coin: str, out_dir: Path):
                 used[cup_id] = False
             
             # Only attempt to open if we don't already have an active position of opposite or same side
-            
             if is_green_cup:
                 print(f"[{datetime.now()}] {coin}: Latest complete cup ID={cup_id} is GREEN (bullish), fill={cup_fill:.5f}")
                 
                 # Check if we already have an active long position
                 if state[coin] == "long":
-                    print(f"[{datetime.now()}] {coin}: Already have active long trade from previous cycle, skipping.")
+                    # We have an active long, check if this cup is new (unused)
+                    if not used[cup_id]:
+                        print(f"[{datetime.now()}] {coin}: Cup {cup_id} matches active long state, adding extra...")
+                        if add_extra_to_position(coin):
+                            used[cup_id] = True
+                    else:
+                        print(f"[{datetime.now()}] {coin}: Already have active long trade from previous cycle, skipping.")
                 else:
                     print(f"[{datetime.now()}] {coin}: Opening long position with cup {cup_id}...")
                     if open_long_position(coin):
@@ -278,7 +306,13 @@ def process_coin(coin: str, out_dir: Path):
                 
                 # Check if we already have an active short position
                 if state[coin] == "short":
-                    print(f"[{datetime.now()}] {coin}: Already have active short trade from previous cycle, skipping.")
+                    # We have an active short, check if this cup is new (unused)
+                    if not used[cup_id]:
+                        print(f"[{datetime.now()}] {coin}: Cup {cup_id} matches active short state, adding extra...")
+                        if add_extra_to_position(coin):
+                            used[cup_id] = True
+                    else:
+                        print(f"[{datetime.now()}] {coin}: Already have active short trade from previous cycle, skipping.")
                 else:
                     print(f"[{datetime.now()}] {coin}: Opening short position with cup {cup_id}...")
                     if open_short_position(coin):
