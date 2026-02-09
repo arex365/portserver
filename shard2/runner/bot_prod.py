@@ -228,6 +228,7 @@ def process_coin(coin: str, out_dir: Path):
         cup_close_price = None
         cup_start_date = None
         cup_end_date = None
+        handoff_price = None  # Track price when transitioning between cups
 
         for _, row in df.iterrows():
             o, c = row["open"], row["close"]
@@ -243,19 +244,24 @@ def process_coin(coin: str, out_dir: Path):
                 capacity_left = CUP_SIZE_PCT - abs(current_fill)
 
                 if current_fill == 0 and cup_open_price is None:
-                    cup_open_price = o
+                    # Use handoff price from previous cup, or candle's open if first cup
+                    cup_open_price = handoff_price if handoff_price is not None else o
                     cup_start_date = ts
+                    handoff_price = None  # Reset after using
 
                 if capacity_left <= 0:
+                    # Cup is completing - set end timestamp to current candle
                     cups.append({
                         "id": cup_id_counter,
                         "fill": current_fill,
                         "open": cup_open_price,
                         "close": cup_close_price,
                         "date": cup_start_date,
-                        "end_date": cup_end_date,
+                        "end_date": ts,  # Use current timestamp as end time
                     })
                     cup_id_counter += 1
+                    # Save the close price as handoff for next cup
+                    handoff_price = cup_close_price
                     current_fill = 0.0
                     cup_open_price = None
                     cup_close_price = None
@@ -271,6 +277,8 @@ def process_coin(coin: str, out_dir: Path):
                 cup_end_date = ts
 
                 if current_fill == 0:
+                    # Cup cancelled out - save close price as handoff
+                    handoff_price = cup_close_price
                     cup_open_price = None
                     cup_close_price = None
                     cup_start_date = None
