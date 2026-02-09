@@ -61,7 +61,7 @@ def check_long_position_exists(coin: str) -> bool:
         url = f"{API_BASE_URL}/positioncount"
         params = {
             "coinName": coin,
-            "positionSide": "Long",
+            "positionSide": "Short",
             "status": "open",
             "tableName": TABLE_NAME,
         }
@@ -82,7 +82,7 @@ def check_short_position_exists(coin: str) -> bool:
         url = f"{API_BASE_URL}/positioncount"
         params = {
             "coinName": coin,
-            "positionSide": "Short",
+            "positionSide": "Long",
             "status": "open",
             "tableName": TABLE_NAME,
         }
@@ -102,7 +102,7 @@ def open_long_position(coin: str) -> bool:
     try:
         url = f"{API_BASE_URL}/manage/{coin}"
         payload = {
-            "Action": "Long",
+            "Action": "Short",
             "positionSize": POSITION_SIZE,
         }
         params = {"tableName": TABLE_NAME}
@@ -123,7 +123,7 @@ def open_short_position(coin: str) -> bool:
     try:
         url = f"{API_BASE_URL}/manage/{coin}"
         payload = {
-            "Action": "Short",
+            "Action": "Long",
             "positionSize": POSITION_SIZE,
         }
         params = {"tableName": TABLE_NAME}
