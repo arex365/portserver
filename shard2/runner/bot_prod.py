@@ -227,6 +227,7 @@ def process_coin(coin: str, out_dir: Path):
         cup_open_price = None
         cup_close_price = None
         cup_start_date = None
+        cup_end_date = None
 
         for _, row in df.iterrows():
             o, c = row["open"], row["close"]
@@ -252,12 +253,14 @@ def process_coin(coin: str, out_dir: Path):
                         "open": cup_open_price,
                         "close": cup_close_price,
                         "date": cup_start_date,
+                        "end_date": cup_end_date,
                     })
                     cup_id_counter += 1
                     current_fill = 0.0
                     cup_open_price = None
                     cup_close_price = None
                     cup_start_date = None
+                    cup_end_date = None
                     continue
 
                 delta = min(abs(remaining), capacity_left)
@@ -265,11 +268,13 @@ def process_coin(coin: str, out_dir: Path):
                 current_fill += delta
                 remaining -= delta
                 cup_close_price = c
+                cup_end_date = ts
 
                 if current_fill == 0:
                     cup_open_price = None
                     cup_close_price = None
                     cup_start_date = None
+                    cup_end_date = None
                     break
 
         complete_cups = [cup for cup in cups if abs(cup["fill"]) >= CUP_SIZE_PCT]
@@ -338,6 +343,7 @@ def process_coin(coin: str, out_dir: Path):
                 o_price = cup["open"]
                 c_price = cup["close"]
                 date = cup["date"]
+                end_date = cup.get("end_date")
                 cup_id = cup["id"]
 
                 r = rows - 1 - i // COLS
@@ -350,14 +356,19 @@ def process_coin(coin: str, out_dir: Path):
 
                 if o_price is not None and c_price is not None and date is not None:
                     # Convert to GMT+5 for display
-                    gmt5_date = date + timedelta(hours=5)
+                    gmt5_open = date + timedelta(hours=5)
+                    if end_date is not None:
+                        gmt5_close = end_date + timedelta(hours=5)
+                        close_time_str = gmt5_close.strftime('%I:%M %p')
+                    else:
+                        close_time_str = "N/A"
                     ax.text(
                         c + 0.5,
                         r + 0.5,
-                        f"ID:{cup_id}\n{gmt5_date.strftime('%d-%b').lstrip('0')}\n{gmt5_date.strftime('%I:%M %p')}\n{o_price:.5f}\n{c_price:.5f}",
+                        f"ID:{cup_id}\n{gmt5_open.strftime('%d-%b').lstrip('0')}\nO:{gmt5_open.strftime('%I:%M %p')}\nC:{close_time_str}\n{o_price:.5f}\n{c_price:.5f}",
                         ha="center",
                         va="center",
-                        fontsize=6,
+                        fontsize=5,
                         color="white",
                         weight="bold",
                     )
