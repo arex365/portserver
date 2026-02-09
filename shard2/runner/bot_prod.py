@@ -164,6 +164,21 @@ def fetch_ohlcv_all(symbol: str):
 def process_coin(coin: str, out_dir: Path):
     global used, state
     try:
+        # Initialize state for this coin if not exists
+        if coin not in state:
+            state[coin] = None
+        
+        # Check database for existing positions and sync state
+        long_exists = check_long_position_exists(coin)
+        short_exists = check_short_position_exists(coin)
+        
+        if long_exists:
+            state[coin] = "long"
+            print(f"[{datetime.now()}] {coin}: Detected active LONG position in database, state updated.")
+        elif short_exists:
+            state[coin] = "short"
+            print(f"[{datetime.now()}] {coin}: Detected active SHORT position in database, state updated.")
+        
         symbol = f"{coin}/USDT"
         if symbol not in exchange.symbols:
             alt = f"{coin}/BUSD"
@@ -245,37 +260,27 @@ def process_coin(coin: str, out_dir: Path):
             if cup_id not in used:
                 used[cup_id] = False
             
-            # Initialize state for this coin if not exists
-            if coin not in state:
-                state[coin] = None  # None = no active trade, "long" or "short"
+            # Only attempt to open if we don't already have an active position of opposite or same side
             
             if is_green_cup:
                 print(f"[{datetime.now()}] {coin}: Latest complete cup ID={cup_id} is GREEN (bullish), fill={cup_fill:.5f}")
                 
-                # Don't open if already used and we already have active long trade
-                if used[cup_id] and state[coin] == "long":
-                    print(f"[{datetime.now()}] {coin}: Cup {cup_id} already used for long position, skipping.")
-                elif state[coin] == "long":
-                    print(f"[{datetime.now()}] {coin}: Already have active long trade, skipping.")
-                elif check_long_position_exists(coin):
-                    print(f"[{datetime.now()}] {coin}: Long position already exists in {TABLE_NAME}, skipping.")
+                # Check if we already have an active long position
+                if state[coin] == "long":
+                    print(f"[{datetime.now()}] {coin}: Already have active long trade from previous cycle, skipping.")
                 else:
-                    print(f"[{datetime.now()}] {coin}: No long position found, opening one with cup {cup_id}...")
+                    print(f"[{datetime.now()}] {coin}: Opening long position with cup {cup_id}...")
                     if open_long_position(coin):
                         used[cup_id] = True
                         state[coin] = "long"
             else:
                 print(f"[{datetime.now()}] {coin}: Latest complete cup ID={cup_id} is RED (bearish), fill={cup_fill:.5f}")
                 
-                # Don't open if already used and we already have active short trade
-                if used[cup_id] and state[coin] == "short":
-                    print(f"[{datetime.now()}] {coin}: Cup {cup_id} already used for short position, skipping.")
-                elif state[coin] == "short":
-                    print(f"[{datetime.now()}] {coin}: Already have active short trade, skipping.")
-                elif check_short_position_exists(coin):
-                    print(f"[{datetime.now()}] {coin}: Short position already exists in {TABLE_NAME}, skipping.")
+                # Check if we already have an active short position
+                if state[coin] == "short":
+                    print(f"[{datetime.now()}] {coin}: Already have active short trade from previous cycle, skipping.")
                 else:
-                    print(f"[{datetime.now()}] {coin}: No short position found, opening one with cup {cup_id}...")
+                    print(f"[{datetime.now()}] {coin}: Opening short position with cup {cup_id}...")
                     if open_short_position(coin):
                         used[cup_id] = True
                         state[coin] = "short"
@@ -353,7 +358,7 @@ def main():
         # then add a SAFETY_DELAY to avoid racing the candle boundary.
         now = datetime.now(timezone.utc)
         mins = now.minute
-        next_min = ((mins // 15) + 1) * 15
+        next_min = ((mins // 15) + 1) * 2 # 2 mins
         if next_min == 60:
             next_dt = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
         else:
