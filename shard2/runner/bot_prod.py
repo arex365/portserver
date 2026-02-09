@@ -113,7 +113,8 @@ def open_long_position(coin: str) -> bool:
         params = {"tableName": TABLE_NAME}
         resp = requests.post(url, json=payload, params=params, timeout=5)
         if resp.status_code == 200:
-            print(f"[{datetime.now()}] ✓ Opened long position for {coin} in {TABLE_NAME}")
+            gmt5_time = datetime.now(timezone.utc) + timedelta(hours=5)
+            print(f"[{datetime.now()}] ✓ Opened long position for {coin} in {TABLE_NAME} at {gmt5_time.strftime('%I:%M %p')} GMT+5")
             return True
         else:
             print(f"[{datetime.now()}] ✗ Failed to open position for {coin}: {resp.status_code} {resp.text}")
@@ -134,7 +135,8 @@ def open_short_position(coin: str) -> bool:
         params = {"tableName": TABLE_NAME}
         resp = requests.post(url, json=payload, params=params, timeout=5)
         if resp.status_code == 200:
-            print(f"[{datetime.now()}] ✓ Opened short position for {coin} in {TABLE_NAME}")
+            gmt5_time = datetime.now(timezone.utc) + timedelta(hours=5)
+            print(f"[{datetime.now()}] ✓ Opened short position for {coin} in {TABLE_NAME} at {gmt5_time.strftime('%I:%M %p')} GMT+5")
             return True
         else:
             print(f"[{datetime.now()}] ✗ Failed to open short position for {coin}: {resp.status_code} {resp.text}")
@@ -347,10 +349,12 @@ def process_coin(coin: str, out_dir: Path):
                 ax.add_patch(plt.Rectangle((c, r), 1, 1, color=color))
 
                 if o_price is not None and c_price is not None and date is not None:
+                    # Convert to GMT+5 for display
+                    gmt5_date = date + timedelta(hours=5)
                     ax.text(
                         c + 0.5,
                         r + 0.5,
-                        f"ID:{cup_id}\n{date.strftime('%-d-%b')}\n{o_price:.5f}\n{c_price:.5f}",
+                        f"ID:{cup_id}\n{gmt5_date.strftime('%d-%b').lstrip('0')}\n{gmt5_date.strftime('%I:%M %p')}\n{o_price:.5f}\n{c_price:.5f}",
                         ha="center",
                         va="center",
                         fontsize=6,
