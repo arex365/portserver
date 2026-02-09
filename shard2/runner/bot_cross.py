@@ -344,6 +344,8 @@ def process_coin(coin: str, out_dir: Path):
                 # Check if we already have an active short position
                 if state[coin] == "short":
                     print(f"[{datetime.now()}] {coin}: Already have active short trade, skipping.")
+                elif used.get(cup_id, False):
+                    print(f"[{datetime.now()}] {coin}: Cup {cup_id} already used, skipping.")
                 else:
                     print(f"[{datetime.now()}] {coin}: Opening short position with cup {cup_id}...")
                     if open_short_position(coin):
@@ -355,6 +357,8 @@ def process_coin(coin: str, out_dir: Path):
                 # Check if we already have an active long position
                 if state[coin] == "long":
                     print(f"[{datetime.now()}] {coin}: Already have active long trade, skipping.")
+                elif used.get(cup_id, False):
+                    print(f"[{datetime.now()}] {coin}: Cup {cup_id} already used, skipping.")
                 else:
                     print(f"[{datetime.now()}] {coin}: Opening long position with cup {cup_id}...")
                     if open_long_position(coin):
