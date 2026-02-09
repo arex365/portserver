@@ -283,26 +283,9 @@ def process_coin(coin: str, out_dir: Path):
             if cup_id not in used:
                 used[cup_id] = False
             
-            # Only attempt to open if we don't already have an active position of opposite or same side
+            # Only attempt to open if we don't a2 lready have an active position of opposite or same side
             if is_green_cup:
                 print(f"[{datetime.now()}] {coin}: Latest complete cup ID={cup_id} is GREEN (bullish), fill={cup_fill:.5f}")
-                
-                # Check if we already have an active long position
-                if state[coin] == "long":
-                    # We have an active long, check if this cup is new (unused)
-                    if not used[cup_id]:
-                        print(f"[{datetime.now()}] {coin}: Cup {cup_id} matches active long state, adding extra...")
-                        if add_extra_to_position(coin):
-                            used[cup_id] = True
-                    else:
-                        print(f"[{datetime.now()}] {coin}: Already have active long trade from previous cycle, skipping.")
-                else:
-                    print(f"[{datetime.now()}] {coin}: Opening long position with cup {cup_id}...")
-                    if open_long_position(coin):
-                        used[cup_id] = True
-                        state[coin] = "long"
-            else:
-                print(f"[{datetime.now()}] {coin}: Latest complete cup ID={cup_id} is RED (bearish), fill={cup_fill:.5f}")
                 
                 # Check if we already have an active short position
                 if state[coin] == "short":
@@ -318,6 +301,23 @@ def process_coin(coin: str, out_dir: Path):
                     if open_short_position(coin):
                         used[cup_id] = True
                         state[coin] = "short"
+            else:
+                print(f"[{datetime.now()}] {coin}: Latest complete cup ID={cup_id} is RED (bearish), fill={cup_fill:.5f}")
+                
+                # Check if we already have an active long position
+                if state[coin] == "long":
+                    # We have an active long, check if this cup is new (unused)
+                    if not used[cup_id]:
+                        print(f"[{datetime.now()}] {coin}: Cup {cup_id} matches active long state, adding extra...")
+                        if add_extra_to_position(coin):
+                            used[cup_id] = True
+                    else:
+                        print(f"[{datetime.now()}] {coin}: Already have active long trade from previous cycle, skipping.")
+                else:
+                    print(f"[{datetime.now()}] {coin}: Opening long position with cup {cup_id}...")
+                    if open_long_position(coin):
+                        used[cup_id] = True
+                        state[coin] = "long"
         else:
             print(f"[{datetime.now()}] {coin}: No complete cups available for position decision.")
         
@@ -392,7 +392,7 @@ def main():
         # then add a SAFETY_DELAY to avoid racing the candle boundary.
         now = datetime.now(timezone.utc)
         mins = now.minute
-        next_min = ((mins // 15) + 1) * 2 # 2 mins
+        next_min = ((mins // 15) + 1) * 15 # 15 mins
         if next_min == 60:
             next_dt = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
         else:
