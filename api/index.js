@@ -11,6 +11,7 @@ const getPositionCount = require('./routes/positioncount');
 const app = express();
 const bodyParser = require('body-parser');
 const subs = require('./routes/subs')
+const active = require('./routes/activeTrades')
 const PORT = process.env.PORT || 5007;
 
 app.use(cors());
@@ -26,6 +27,7 @@ app.use(getTrades);
 app.use(getPrice);
 app.use(getPositionCount);
 app.use(subs)
+app.use(active)
 // Serve control page at /control
 app.get('/control', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'control.html'));
@@ -39,9 +41,9 @@ app.get('/bubble', (req, res) => {
 app.get('/stack', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'stack.html'));
 });
-app.get("/brick",(req,res)=>res.sendFile(path.join(__dirname, 'public', 'brick.html')))
-app.get("/admin",(req,res)=>res.sendFile(path.join(__dirname, 'public', 'sub.html')))
-app.get("/allcharts",(req,res)=>res.sendFile(path.join(__dirname, 'public', 'AllCharts.html')))
+app.get("/brick", (req, res) => res.sendFile(path.join(__dirname, 'public', 'brick.html')))
+app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, 'public', 'sub.html')))
+app.get("/allcharts", (req, res) => res.sendFile(path.join(__dirname, 'public', 'AllCharts.html')))
 // Connect to MongoDB and start server
 connectDB().then(() => {
     app.listen(PORT, () => {

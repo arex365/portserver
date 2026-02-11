@@ -2,7 +2,7 @@
   const baseURL = "";
   const tableSelect = document.getElementById("tableSelect");
   const startDateInput = document.getElementById("startDateInput");
-const endDateInput = document.getElementById("endDateInput");
+  const endDateInput = document.getElementById("endDateInput");
 
   // fetch table names and populate dropdown
   async function loadTables() {
@@ -52,10 +52,12 @@ const endDateInput = document.getElementById("endDateInput");
     );
     message.classList.add("alert-info");
 
-    if (isLoading) {
-      loadingSpinner.style.display = "inline-block";
-    } else {
-      loadingSpinner.style.display = "none";
+    if (loadingSpinner) {
+      if (isLoading) {
+        loadingSpinner.style.display = "inline-block";
+      } else {
+        loadingSpinner.style.display = "none";
+      }
     }
   }
 
@@ -122,15 +124,15 @@ const endDateInput = document.getElementById("endDateInput");
   // Function to determine trading session based on UTC time
   function getTradingSession(timestamp) {
     if (!timestamp || timestamp === 0) return null;
-    
+
     const date = new Date(timestamp * 1000);
     const utcHour = date.getUTCHours();
-    
+
     // Trading session times in UTC:
     // Tokyo: 00:00 - 09:00 UTC (JST 09:00 - 18:00)
     // London: 08:00 - 17:00 UTC (GMT 08:00 - 17:00, or BST 09:00 - 18:00)
     // New York: 13:00 - 22:00 UTC (EST 08:00 - 17:00, or EDT 09:00 - 18:00)
-    
+
     // Priority: London > New York > Tokyo (as requested)
     if (utcHour >= 8 && utcHour < 17) {
       return 'london'; // London session
@@ -139,7 +141,7 @@ const endDateInput = document.getElementById("endDateInput");
     } else if (utcHour >= 0 && utcHour < 9) {
       return 'tokyo'; // Tokyo session
     }
-    
+
     return null; // No major trading session
   }
 
@@ -156,7 +158,7 @@ const endDateInput = document.getElementById("endDateInput");
     // Define the specific columns we want to display in order
     const displayColumns = [
       "coinName",
-      "entryTime", 
+      "entryTime",
       "entryPrice",
       "positionSize",
       "exitTime",
@@ -227,7 +229,7 @@ const endDateInput = document.getElementById("endDateInput");
             td.innerHTML = '<span class="text-muted">-</span>';
           } else {
             td.textContent = new Date(v * 1000).toLocaleString();
-            
+
             // Add trading session background color
             const session = getTradingSession(v);
             if (session) {
@@ -247,7 +249,7 @@ const endDateInput = document.getElementById("endDateInput");
       const tdAction = document.createElement("td");
       const actionContainer = document.createElement("div");
       actionContainer.className = "d-flex gap-1";
-      
+
       if (r.status && r.status.toLowerCase() === "open") {
         // Close button for open positions
         const closeBtn = document.createElement("button");
@@ -256,7 +258,7 @@ const endDateInput = document.getElementById("endDateInput");
         closeBtn.addEventListener("click", () => closePositionById(r));
         actionContainer.appendChild(closeBtn);
       }
-      
+
       // Delete button for all positions
       const deleteBtn = document.createElement("button");
       deleteBtn.className = "btn btn-sm btn-outline-dark";
@@ -264,13 +266,13 @@ const endDateInput = document.getElementById("endDateInput");
       deleteBtn.title = "Delete this position permanently";
       deleteBtn.addEventListener("click", () => deletePositionById(r));
       actionContainer.appendChild(deleteBtn);
-      
+
       if (actionContainer.children.length > 0) {
         tdAction.appendChild(actionContainer);
       } else {
         tdAction.innerHTML = '<span class="text-muted">-</span>';
       }
-      
+
       tr.appendChild(tdAction);
 
       tableBody.appendChild(tr);
@@ -336,7 +338,7 @@ const endDateInput = document.getElementById("endDateInput");
       r.unrealized = "";
       if (r.status && r.status.toLowerCase() === "open") {
         const price = priceMap[r.coinName];
-        
+
         if (typeof price === "number" && r.entryPrice && r.positionSize) {
           const quantity = r.positionSize / r.entryPrice;
           let gross = 0;
@@ -372,9 +374,8 @@ const endDateInput = document.getElementById("endDateInput");
 
     const tableName = tableSelect.value;
     const coinName = row.coinName;
-    const url = `/manage/${encodeURIComponent(coinName)}${
-      tableName ? "?tableName=" + encodeURIComponent(tableName) : ""
-    }`;
+    const url = `/manage/${encodeURIComponent(coinName)}${tableName ? "?tableName=" + encodeURIComponent(tableName) : ""
+      }`;
     const payload = { Action: "CloseById", id: row._id };
 
     showMessage("Closing position...", true);
@@ -388,9 +389,9 @@ const endDateInput = document.getElementById("endDateInput");
       console.error(err);
       showError(
         "Error closing position: " +
-          (err.response && err.response.data
-            ? JSON.stringify(err.response.data)
-            : err.message)
+        (err.response && err.response.data
+          ? JSON.stringify(err.response.data)
+          : err.message)
       );
     }
   }
@@ -400,9 +401,8 @@ const endDateInput = document.getElementById("endDateInput");
 
     const tableName = tableSelect.value;
     const coinName = row.coinName;
-    const url = `/manage/${encodeURIComponent(coinName)}${
-      tableName ? "?tableName=" + encodeURIComponent(tableName) : ""
-    }`;
+    const url = `/manage/${encodeURIComponent(coinName)}${tableName ? "?tableName=" + encodeURIComponent(tableName) : ""
+      }`;
     const payload = { Action: "DeleteById", id: row._id };
 
     showMessage("Deleting position...", true);
@@ -418,9 +418,9 @@ const endDateInput = document.getElementById("endDateInput");
       console.error(err);
       showError(
         "Error deleting position: " +
-          (err.response && err.response.data
-            ? JSON.stringify(err.response.data)
-            : err.message)
+        (err.response && err.response.data
+          ? JSON.stringify(err.response.data)
+          : err.message)
       );
     }
   }
@@ -443,9 +443,9 @@ const endDateInput = document.getElementById("endDateInput");
       console.error(err);
       showError(
         "Error recalculating historical profits: " +
-          (err.response && err.response.data
-            ? JSON.stringify(err.response.data)
-            : err.message)
+        (err.response && err.response.data
+          ? JSON.stringify(err.response.data)
+          : err.message)
       );
     }
   }
@@ -468,9 +468,9 @@ const endDateInput = document.getElementById("endDateInput");
       console.error(err);
       showError(
         "Error updating profit tracking: " +
-          (err.response && err.response.data
-            ? JSON.stringify(err.response.data)
-            : err.message)
+        (err.response && err.response.data
+          ? JSON.stringify(err.response.data)
+          : err.message)
       );
     }
   }
@@ -505,20 +505,20 @@ const endDateInput = document.getElementById("endDateInput");
       console.error(err);
       showError(
         "Error performing bulk delete: " +
-          (err.response && err.response.data
-            ? JSON.stringify(err.response.data)
-            : err.message)
+        (err.response && err.response.data
+          ? JSON.stringify(err.response.data)
+          : err.message)
       );
     }
   }
 
   async function showBestCoins() {
     const tableName = tableSelect.value;
-    
+
     // Show modal
     const modal = new bootstrap.Modal(document.getElementById('bestCoinsModal'));
     modal.show();
-    
+
     // Reset content to loading state
     const contentDiv = document.getElementById('bestCoinsContent');
     contentDiv.innerHTML = `
@@ -535,10 +535,10 @@ const endDateInput = document.getElementById("endDateInput");
         params: { table: tableName },
         timeout: 10000
       });
-      
+
       if (resp && resp.data && Array.isArray(resp.data.coins)) {
         const coins = resp.data.coins;
-        
+
         if (coins.length === 0) {
           contentDiv.innerHTML = `
             <div class="text-center text-muted">
@@ -575,7 +575,7 @@ const endDateInput = document.getElementById("endDateInput");
         coins.forEach((coin, index) => {
           const pnlClass = coin.totalPnl >= 0 ? 'text-success' : 'text-danger';
           const rankBadge = index < 3 ? `<span class="badge bg-warning text-dark">#${index + 1}</span>` : `#${index + 1}`;
-          
+
           tableHTML += `
             <tr>
               <td>${rankBadge}</td>
@@ -614,83 +614,95 @@ const endDateInput = document.getElementById("endDateInput");
     }
   }
 
-async function fetchTrades() {
-  const tableName = tableSelect.value;
-  const coinName = coinInput.value.trim();
-  const status = statusSelect.value;
-  const startDate = startDateInput.value;
-  const endDate = endDateInput.value;
+  async function fetchTrades() {
+    const tableName = tableSelect.value;
+    const coinName = coinInput.value.trim();
+    const status = statusSelect.value;
+    const startDate = startDateInput.value;
+    const endDate = endDateInput.value;
 
-  const params = {};
-  if (tableName) params.tableName = tableName;
-  if (coinName) params.coinName = coinName;
-  if (status) params.status = status;
+    const params = {};
+    if (tableName) params.tableName = tableName;
+    if (coinName) params.coinName = coinName;
+    if (status) params.status = status;
 
-  showMessage("Loading trades...", true);
+    showMessage("Loading trades...", true);
 
-  try {
-    const resp = await axios.get(baseURL + "/gettrades", {
-      params,
-      timeout: 10000,
-    });
-    if (resp && resp.data && Array.isArray(resp.data.trades)) {
-      let trades = resp.data.trades;
+    try {
+      const resp = await axios.get(baseURL + "/gettrades", {
+        params,
+        timeout: 10000,
+      });
+      if (resp && resp.data && Array.isArray(resp.data.trades)) {
+        let trades = resp.data.trades;
 
-      // Filter trades by entryTime date ignoring time part
-      if (startDate) {
-        const start = new Date(startDate);
-        trades = trades.filter((t) => {
-          if (!t.entryTime) return false;
-          const entryDate = new Date(t.entryTime * 1000);
-          // Zero out time part for comparison
-          entryDate.setHours(0, 0, 0, 0);
-          return entryDate >= start;
-        });
+        // Filter trades by entryTime date ignoring time part
+        if (startDate) {
+          const start = new Date(startDate);
+          trades = trades.filter((t) => {
+            if (!t.entryTime) return false;
+            const entryDate = new Date(t.entryTime * 1000);
+            // Zero out time part for comparison
+            entryDate.setHours(0, 0, 0, 0);
+            return entryDate >= start;
+          });
+        }
+
+        if (endDate) {
+          const end = new Date(endDate);
+          // Zero out time and set to end of day
+          end.setHours(0, 0, 0, 0);
+          trades = trades.filter((t) => {
+            if (!t.entryTime) return false;
+            const entryDate = new Date(t.entryTime * 1000);
+            entryDate.setHours(0, 0, 0, 0);
+            return entryDate <= end;
+          });
+        }
+
+        // Update totals
+        if (typeof totalUnrealized !== 'undefined') {
+          // This might be calculated inside enrichWithPnl, or we can do it here if needed
+          // refapp.js does it inside enrichWithPnl
+        }
+
+        const enriched = await enrichWithPnl(trades);
+        renderTable(enriched);
+
+      } else {
+        showError("Unexpected response format");
       }
-
-      if (endDate) {
-        const end = new Date(endDate);
-        // Zero out time and set to end of day
-        end.setHours(0, 0, 0, 0);
-        trades = trades.filter((t) => {
-          if (!t.entryTime) return false;
-          const entryDate = new Date(t.entryTime * 1000);
-          entryDate.setHours(0, 0, 0, 0);
-          return entryDate <= end;
-        });
-      }
-
-      const enriched = await enrichWithPnl(trades);
-      renderTable(enriched);
-    } else {
-      showError("Unexpected response format");
-    }
-  } catch (err) {
-    console.error(err);
-    showError(
-      "Error fetching trades: " +
+    } catch (err) {
+      console.error(err);
+      showError(
+        "Error fetching trades: " +
         (err.response && err.response.data
           ? JSON.stringify(err.response.data)
           : err.message)
-    );
+      );
+    } finally {
+      if (loadingSpinner.style.display !== "none" && message.classList.contains("alert-info")) {
+        loadingSpinner.style.display = "none";
+        if (tableBody.children.length > 0) message.classList.add('d-none');
+      }
+    }
   }
-}
 
 
 
-function clearFilters() {
-  coinInput.value = "";
-  statusSelect.value = "all";
-  startDateInput.value = "";
-  endDateInput.value = "";
-  clearTable();
-  showMessage("");
-  // Reset P&L totals
-  document.getElementById("totalUnrealized").textContent = "$0.00";
-  document.getElementById("totalRealized").textContent = "$0.00";
-  document.getElementById("totalUnrealized").className = "";
-  document.getElementById("totalRealized").className = "";
-}
+  function clearFilters() {
+    coinInput.value = "";
+    statusSelect.value = "all";
+    startDateInput.value = "";
+    endDateInput.value = "";
+    clearTable();
+    showMessage("");
+    // Reset P&L totals
+    document.getElementById("totalUnrealized").textContent = "$0.00";
+    document.getElementById("totalRealized").textContent = "$0.00";
+    document.getElementById("totalUnrealized").className = "";
+    document.getElementById("totalRealized").className = "";
+  }
 
 
   // Event listeners

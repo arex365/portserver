@@ -1,280 +1,256 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
-  <title>TradeServer Dashboard</title>
+  <title>TradeServer Strategy Dashboard</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link rel="stylesheet" href="/global.css">
 
   <style>
-    body{
-      margin:0;
-      background:#0b1220;
-      font-family: system-ui, Arial;
-      color:#eee;
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      background: rgba(59, 130, 246, 0.2);
+      color: #9fb2ff;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      border-radius: 20px;
+      margin-right: 5px;
+      font-size: 0.85em;
     }
 
-    header{
-      padding:20px;
-      background:#0f162a;
-      border-bottom:1px solid #243356;
+    .pill:hover {
+      background: rgba(59, 130, 246, 0.4);
     }
-
-    h1{ margin:0 }
-
-    .container{
-      padding:20px;
-      max-width:1100px;
-      margin:auto;
-    }
-
-    .card{
-      background:#121b32;
-      padding:20px;
-      border-radius:10px;
-      margin-bottom:20px;
-      border:1px solid #1f2b4a;
-    }
-
-    label{
-      display:block;
-      font-size:13px;
-      color:#aaa;
-      margin-bottom:4px;
-    }
-
-    input{
-      width:100%;
-      padding:8px;
-      margin-bottom:10px;
-      border-radius:6px;
-      border:1px solid #2d416d;
-      background:#0d1426;
-      color:#fff;
-    }
-
-    button{
-      padding:10px 15px;
-      border-radius:6px;
-      border:none;
-      background:#3b82f6;
-      color:white;
-      cursor:pointer;
-      font-weight:600;
-    }
-
-    button:disabled{
-      opacity:.6;
-      cursor:not-allowed;
-    }
-
-    table{
-      width:100%;
-      border-collapse:collapse;
-      margin-top:10px;
-    }
-
-    th,td{
-      padding:10px;
-      border-bottom:1px solid #1f2b4a;
-    }
-
-    th{
-      text-align:left;
-      color:#9fb2ff;
-    }
-
-    .pill{
-      display:inline-block;
-      padding:4px 8px;
-      background:#1e2b52;
-      border-radius:20px;
-      margin-right:5px;
-    }
-
-    .row{
-      display:grid;
-      grid-template-columns:repeat(4,1fr);
-      gap:10px;
-    }
-
-    @media(max-width:700px){
-      .row{ grid-template-columns:1fr; }
-    }
-
-    .success{ color:#7CFF8C; }
-    .error{ color:#FF6B6B; }
   </style>
 </head>
 
 <body>
 
-<header>
-  <h1>📊 TradeServer Strategy Dashboard</h1>
-</header>
+  <!-- Global Nav -->
+  <script src="/settings.js"></script>
+  <script src="/nav.js"></script>
 
-<div class="container">
+  <div class="container my-4">
 
-  <!-- FILTER -->
-  <div class="card">
-    <h2>Filters</h2>
+    <h2 class="mb-4">Subs Management</h2>
 
     <div class="row">
-      <div>
-        <label>Strategy (optional)</label>
-        <input id="filterStrategy" placeholder="SHIFT2">
+      <!-- LOAD/FILTER -->
+      <div class="col-md-12 mb-4">
+        <div class="card">
+          <div class="card-header"><i class="bi bi-filter me-2"></i>Filter</div>
+          <div class="card-body">
+            <div class="row g-3">
+              <div class="col-md-5">
+                <label class="form-label small text-muted">Strategy (optional)</label>
+                <input id="filterStrategy" class="form-control" placeholder="SHIFT2">
+              </div>
+              <div class="col-md-5">
+                <label class="form-label small text-muted">User ID (optional)</label>
+                <input id="filterId" class="form-control auto-user-id" placeholder="0">
+              </div>
+              <div class="col-md-2 d-flex align-items-end">
+                <button onclick="loadData()" class="btn btn-primary w-100">Load</button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div>
-        <label>User ID (optional)</label>
-        <input id="filterId" placeholder="0">
+
+      <!-- SUBSCRIBE -->
+      <div class="col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-header text-success"><i class="bi bi-plus-circle me-2"></i>Subscribe</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label small text-muted">Strategy</label>
+              <input id="sStrategy" class="form-control" placeholder="SHIFT2">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small text-muted">User ID</label>
+              <input id="sId" class="form-control auto-user-id" placeholder="0">
+            </div>
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label small text-muted">Coin</label>
+                <input id="sCoin" class="form-control" placeholder="BTC">
+              </div>
+              <div class="col-6">
+                <label class="form-label small text-muted">Amount</label>
+                <input id="sAmount" class="form-control auto-pos-size" placeholder="20">
+              </div>
+            </div>
+            <button onclick="subscribe()" class="btn btn-success w-100">Subscribe</button>
+            <div id="subMsg" class="mt-2 text-center small fw-bold"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UNSUBSCRIBE -->
+      <div class="col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-header text-danger"><i class="bi bi-dash-circle me-2"></i>Unsubscribe</div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label small text-muted">Strategy</label>
+              <input id="uStrategy" class="form-control" placeholder="SHIFT2">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small text-muted">User ID</label>
+              <input id="uId" class="form-control auto-user-id" placeholder="0">
+            </div>
+            <div class="mb-3">
+              <label class="form-label small text-muted">Coin</label>
+              <input id="uCoin" class="form-control" placeholder="BTC">
+            </div>
+            <button onclick="unsubscribe()" class="btn btn-danger w-100">Unsubscribe</button>
+            <div id="unsubMsg" class="mt-2 text-center small fw-bold"></div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <button onclick="loadData()">Load Subscriptions</button>
-  </div>
 
-
-  <!-- SUBSCRIBE -->
-  <div class="card">
-    <h2>Subscribe</h2>
-
-    <div class="row">
-      <div>
-        <label>Strategy</label>
-        <input id="sStrategy" placeholder="SHIFT2">
-      </div>
-      <div>
-        <label>User ID</label>
-        <input id="sId" placeholder="0">
-      </div>
-      <div>
-        <label>Coin</label>
-        <input id="sCoin" placeholder="BTC">
-      </div>
-      <div>
-        <label>Amount</label>
-        <input id="sAmount" placeholder="20">
+    <!-- TABLE -->
+    <div class="card">
+      <div class="card-header"><i class="bi bi-list-ul me-2"></i>Current Subscriptions</div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table id="table" class="table mb-0">
+            <thead>
+              <tr>
+                <th>Strategy</th>
+                <th>User ID</th>
+                <th>Amount</th>
+                <th>Coins</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <button onclick="subscribe()">Subscribe</button>
-    <div id="subMsg"></div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const API = "https://trade.itsarex.com";
 
-  <!-- UNSUBSCRIBE -->
-  <div class="card">
-    <h2>Unsubscribe</h2>
+    async function loadData() {
+      const s = document.getElementById("filterStrategy").value;
+      const id = document.getElementById("filterId").value;
 
-    <div class="row">
-      <div>
-        <label>Strategy</label>
-        <input id="uStrategy" placeholder="SHIFT2">
-      </div>
-      <div>
-        <label>User ID</label>
-        <input id="uId" placeholder="0">
-      </div>
-      <div>
-        <label>Coin</label>
-        <input id="uCoin" placeholder="BTC">
-      </div>
-    </div>
+      const qs = new URLSearchParams();
+      if (s) qs.append("strategy", s);
+      if (id) qs.append("id", id);
 
-    <button onclick="unsubscribe()">Unsubscribe</button>
-    <div id="unsubMsg"></div>
-  </div>
+      try {
+        const res = await fetch(`${API}/subscriptions?${qs.toString()}`);
+        const data = await res.json();
 
+        const tbody = document.querySelector("#table tbody");
+        tbody.innerHTML = "";
 
-  <!-- TABLE -->
-  <div class="card">
-    <h2>Subscriptions</h2>
-    <table id="table">
-      <thead>
-        <tr>
-          <th>Strategy</th>
-          <th>User ID</th>
-          <th>Amount</th>
-          <th>Coins</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+        if (!data || !data.length) {
+          tbody.innerHTML = "<tr><td colspan='4' class='text-center text-muted py-3'>No subscriptions found</td></tr>";
+          return;
+        }
 
-</div>
+        data.forEach(row => {
+          (row.entries || []).forEach(e => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+            <td><span class="fw-bold">${row.strategy}</span></td>
+            <td>${e.id}</td>
+            <td>$${e.amount}</td>
+            <td>${(e.whitelist || []).map(c => `<span class='pill'>${c}</span>`).join("")}</td>
+          `;
+            tbody.appendChild(tr);
+          });
+        });
+      } catch (e) {
+        console.error(e);
+        document.querySelector("#table tbody").innerHTML = "<tr><td colspan='4' class='text-center text-danger'>Error loading data</td></tr>";
+      }
+    }
 
-<script>
-const API = "https://trade.itsarex.com";
+    async function subscribe() {
+      const btn = document.querySelector("button[onclick='subscribe()']");
+      btn.disabled = true;
 
-async function loadData(){
-  const s = document.getElementById("filterStrategy").value;
-  const id = document.getElementById("filterId").value;
+      const body = {
+        strategy: document.getElementById("sStrategy").value,
+        id: Number(document.getElementById("sId").value),
+        coin: document.getElementById("sCoin").value,
+        amount: Number(document.getElementById("sAmount").value)
+      };
 
-  const qs = new URLSearchParams();
-  if(s) qs.append("strategy", s);
-  if(id) qs.append("id", id);
+      try {
+        const res = await fetch(`${API}/subscribe`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
 
-  const res = await fetch(`${API}/subscriptions?${qs.toString()}`);
-  const data = await res.json();
+        const msgEl = document.getElementById("subMsg");
+        if (res.ok) {
+          msgEl.textContent = "Subscribed Successfully ✔";
+          msgEl.className = "mt-2 text-center small fw-bold text-success";
+          loadData();
+        } else {
+          throw new Error("Failed");
+        }
+      } catch (e) {
+        const msgEl = document.getElementById("subMsg");
+        msgEl.textContent = "Subscription Failed ❌";
+        msgEl.className = "mt-2 text-center small fw-bold text-danger";
+      } finally {
+        btn.disabled = false;
+      }
+    }
 
-  const tbody = document.querySelector("#table tbody");
-  tbody.innerHTML = "";
+    async function unsubscribe() {
+      const btn = document.querySelector("button[onclick='unsubscribe()']");
+      btn.disabled = true;
 
-  data.forEach(row=>{
-    (row.entries||[]).forEach(e=>{
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${row.strategy}</td>
-        <td>${e.id}</td>
-        <td>${e.amount}</td>
-        <td>${(e.whitelist||[]).map(c=>`<span class='pill'>${c}</span>`).join("")}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  });
-}
+      const body = {
+        strategy: document.getElementById("uStrategy").value,
+        id: Number(document.getElementById("uId").value),
+        coin: document.getElementById("uCoin").value
+      };
 
-async function subscribe(){
-  const body = {
-    strategy: document.getElementById("sStrategy").value,
-    id: Number(document.getElementById("sId").value),
-    coin: document.getElementById("sCoin").value,
-    amount: Number(document.getElementById("sAmount").value)
-  };
+      try {
+        const res = await fetch(`${API}/unsubscribe`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
 
-  const res = await fetch(`${API}/subscribe`,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify(body)
-  });
+        const msgEl = document.getElementById("unsubMsg");
+        if (res.ok) {
+          msgEl.textContent = "Unsubscribed Successfully ✔";
+          msgEl.className = "mt-2 text-center small fw-bold text-success";
+          loadData();
+        } else {
+          throw new Error("Failed");
+        }
+      } catch (e) {
+        const msgEl = document.getElementById("unsubMsg");
+        msgEl.textContent = "Unsubscribe Failed ❌";
+        msgEl.className = "mt-2 text-center small fw-bold text-danger";
+      } finally {
+        btn.disabled = false;
+      }
+    }
 
-  document.getElementById("subMsg").textContent =
-    res.ok ? "Subscribed ✔" : "Failed ❌";
-
-  loadData();
-}
-
-async function unsubscribe(){
-  const body = {
-    strategy: document.getElementById("uStrategy").value,
-    id: Number(document.getElementById("uId").value),
-    coin: document.getElementById("uCoin").value
-  };
-
-  const res = await fetch(`${API}/unsubscribe`,{
-    method:"POST",
-    headers:{ "Content-Type":"application/json" },
-    body:JSON.stringify(body)
-  });
-
-  document.getElementById("unsubMsg").textContent =
-    res.ok ? "Unsubscribed ✔" : "Failed ❌";
-
-  loadData();
-}
-
-// auto-load
-loadData();
-</script>
+    // Initial load (wait for settings to populate ID if any)
+    setTimeout(loadData, 500);
+  </script>
 
 </body>
+
 </html>

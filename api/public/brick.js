@@ -1,4 +1,4 @@
-(function(){
+(function () {
   const tableSelect = document.getElementById("tableSelect");
   const startDateInput = document.getElementById("startDateInput");
   const endDateInput = document.getElementById("endDateInput");
@@ -19,7 +19,7 @@
     statusMsg.textContent = text;
   }
 
-  async function loadTables(){
+  async function loadTables() {
     try {
       const resp = await axios.get("/tables", { timeout: 5000 });
       const tables = (resp && resp.data && Array.isArray(resp.data.tables)) ? resp.data.tables : [];
@@ -35,32 +35,32 @@
     }
   }
 
-  function applyDateFilter(trades){
+  function applyDateFilter(trades) {
     let filtered = trades.slice();
     if (startDateInput.value) {
       const start = new Date(startDateInput.value);
-      start.setHours(0,0,0,0);
+      start.setHours(0, 0, 0, 0);
       filtered = filtered.filter(t => {
         if (!t.entryTime) return false;
         const entryDate = new Date(t.entryTime * 1000);
-        entryDate.setHours(0,0,0,0);
+        entryDate.setHours(0, 0, 0, 0);
         return entryDate >= start;
       });
     }
     if (endDateInput.value) {
       const end = new Date(endDateInput.value);
-      end.setHours(0,0,0,0);
+      end.setHours(0, 0, 0, 0);
       filtered = filtered.filter(t => {
         if (!t.entryTime) return false;
         const entryDate = new Date(t.entryTime * 1000);
-        entryDate.setHours(0,0,0,0);
+        entryDate.setHours(0, 0, 0, 0);
         return entryDate <= end;
       });
     }
     return filtered;
   }
 
-  function groupTradesByCoin(trades, maxTrades){
+  function groupTradesByCoin(trades, maxTrades) {
     const grouped = {};
     trades.forEach(t => {
       if (!t || (t.status && t.status.toLowerCase() !== "close")) return;
@@ -86,7 +86,7 @@
     return entries;
   }
 
-  function drawBricks(coinEntries){
+  function drawBricks(coinEntries) {
     brickTable.innerHTML = '';
 
     if (!coinEntries.length) {
@@ -161,10 +161,10 @@
     });
   }
 
-  function createBrick(trade, coin, maxAbsPnl, minHeight, maxHeight){
+  function createBrick(trade, coin, maxAbsPnl, minHeight, maxHeight) {
     const brick = document.createElement('div');
     brick.className = `brick ${trade.pnl >= 0 ? 'positive' : 'negative'}`;
-    
+
     // Calculate height based on P&L magnitude
     const pnlRatio = Math.abs(trade.pnl) / maxAbsPnl;
     const height = minHeight + (pnlRatio * (maxHeight - minHeight));
@@ -177,28 +177,28 @@
     // Create tooltip
     const tooltip = document.createElement('div');
     tooltip.className = 'brick-tooltip';
-    
+
     const entryDate = trade.entryTime ? new Date(trade.entryTime * 1000).toLocaleString() : 'N/A';
     const exitDate = trade.exitTime ? new Date(trade.exitTime * 1000).toLocaleString() : 'N/A';
-    
+
     let tooltipHTML = `
       <strong>${coin}</strong><br>
       P&L: <strong>${trade.pnl >= 0 ? '+' : ''}$${trade.pnl.toFixed(2)}</strong><br>
       Entry: ${entryDate}<br>
       Exit: ${exitDate}
     `;
-    
+
     if (trade.entryPrice) tooltipHTML += `<br>Entry Price: $${trade.entryPrice}`;
     if (trade.exitPrice) tooltipHTML += `<br>Exit Price: $${trade.exitPrice}`;
     if (trade.size) tooltipHTML += `<br>Size: ${trade.size}`;
-    
+
     tooltip.innerHTML = tooltipHTML;
     brick.appendChild(tooltip);
 
     return brick;
   }
 
-  function updateSummaryStats(coinEntries){
+  function updateSummaryStats(coinEntries) {
     let totalTrades = 0;
     let totalWins = 0;
     let totalLosses = 0;
@@ -217,44 +217,48 @@
     document.getElementById("totalLosses").textContent = `$${totalLosses.toFixed(2)}`;
   }
 
-  async function loadData(){
+  async function loadData() {
     showMessage('Loading trades...', 'info');
     const params = {};
     if (tableSelect.value) params.tableName = tableSelect.value;
     params.status = 'close';
-    
+
     try {
       const resp = await axios.get('/gettrades', { params, timeout: 10000 });
       const trades = Array.isArray(resp.data?.trades) ? resp.data.trades : [];
       const filtered = applyDateFilter(trades);
       const maxTrades = parseInt(maxTradesInput.value) || 50;
       const coinEntries = groupTradesByCoin(filtered, maxTrades);
-      
+
       if (!coinEntries.length) {
         showMessage('No closed trades found for the selected filters.', 'warning');
         drawBricks([]);
         updateSummaryStats([]);
         return;
       }
-      
+
       drawBricks(coinEntries);
       updateSummaryStats(coinEntries);
-      
+
       const totalTrades = coinEntries.reduce((sum, e) => sum + e.trades.length, 0);
       showMessage(`Loaded ${coinEntries.length} coins with ${totalTrades} trades.`, 'success');
-  sortToggle.addEventListener('change', () => {
-    // Reload data when sort toggle changes
-    if (brickTable.children.length > 0 && !brickTable.querySelector('.no-data')) {
-      loadData();
-    }
-  });
     } catch (err) {
       console.error(err);
       showMessage('Error loading trades: ' + (err.message || err), 'danger');
     }
   }
 
-  function clearData(){
+  // Listener for sort toggle
+  if (sortToggle) {
+    sortToggle.addEventListener('change', () => {
+      // Reload data when sort toggle changes if we have data
+      if (brickTable.children.length > 0 && !brickTable.querySelector('.no-data')) {
+        loadData();
+      }
+    });
+  }
+
+  function clearData() {
     startDateInput.value = '';
     endDateInput.value = '';
     brickTable.innerHTML = '<div class="no-data">Load data to see bricks...</div>';
@@ -262,8 +266,8 @@
     showMessage('', 'info');
   }
 
-  loadBtn.addEventListener('click', loadData);
-  clearBtn.addEventListener('click', clearData);
+  if (loadBtn) loadBtn.addEventListener('click', loadData);
+  if (clearBtn) clearBtn.addEventListener('click', clearData);
 
   // init
   loadTables();

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Board Trades</title>
+    <!-- Dependencies -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Global Styles -->
+    <link rel="stylesheet" href="/global.css">
+</head>
+<body>
+
+    <div class="container my-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="bi bi-activity me-2"></i>Live Board</h2>
+            <button id="refreshBoardBtn" class="btn btn-primary"><i class="bi bi-arrow-clockwise me-1"></i> Refresh</button>
+        </div>
+
+        <!-- Stats Row -->
+        <div id="boardStats" class="row g-3 mb-4">
+            <!-- Populated by JS -->
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-5 d-none">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Connecting to Board API...</p>
+        </div>
+
+        <!-- Empty/Error State -->
+        <div id="emptyState" class="d-none"></div>
+
+        <!-- Table Container -->
+        <div id="boardContent" class="card d-none">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Side</th>
+                                <th>Entry</th>
+                                <th>Break Even</th>
+                                <th>Amount</th>
+                                <th>Margin</th>
+                                <th>PnL (USDT)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="boardTableBody">
+                            <!-- Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/settings.js"></script>
+    <script src="/nav.js"></script>
+    <script src="/board.js"></script>
+</body>
+</html>
