@@ -914,7 +914,7 @@ router.post("/manage/:coinName", async (req, res) => {
         return res.status(500).json({ error: "Failed to delete position" });
       }
     }else if(Action == "Part Close"){
-          let _response = await axios.get(`https://trade.itsarex.com/positions/partialclose?coinName=${coinName}&percSize=50&tableName=${collectionName}`)
+          let _response = await axios.get(`https://trade.itsarex.com/partialclose?coinName=${coinName}&percSize=50&tableName=${collectionName}`)
           ManageSubscriptions(collectionName,coinName,"PartialClose",multiplier,appendable);
           return res.send(_response.data)
         }
