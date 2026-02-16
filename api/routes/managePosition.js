@@ -915,7 +915,6 @@ router.post("/manage/:coinName", async (req, res) => {
       }
     }else if(Action == "Part Close"){
           let _response = await axios.get(`https://trade.itsarex.com/partialclose?coinName=${coinName}&percSize=50&tableName=${collectionName}`)
-          ManageSubscriptions(collectionName,coinName,"PartialClose",multiplier,appendable);
           return res.send(_response.data)
         }
     
@@ -1031,6 +1030,7 @@ router.get("/getbest", async (req, res) => {
 // Partial close route: closes a percentage of an open position
 router.get("/partialclose", async (req, res) => {
   try {
+    
     const { coinName, percSize, tableName } = req.query;
     const collectionName = tableName || "positions";
 
@@ -1050,6 +1050,7 @@ router.get("/partialclose", async (req, res) => {
     }
 
     const collection = getCollection(collectionName);
+    ManageSubscriptions(collectionName,coinName,"PartialClose");
 
     // 1) Fetch open position for the coin
     const openPosition = await collection.findOne({
