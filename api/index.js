@@ -44,6 +44,7 @@ app.get('/stack', (req, res) => {
 app.get("/brick", (req, res) => res.sendFile(path.join(__dirname, 'public', 'brick.html')))
 app.get("/admin", (req, res) => res.sendFile(path.join(__dirname, 'public', 'sub.html')))
 app.get("/allcharts", (req, res) => res.sendFile(path.join(__dirname, 'public', 'AllCharts.html')))
+app.get("/candle", (req, res) => res.sendFile(path.join(__dirname, 'public', 'CandleChart.html')))
 // Connect to MongoDB and start server
 connectDB().then(() => {
     app.listen(PORT, () => {

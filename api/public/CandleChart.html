@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily P&L Chart</title>
+
+  <!-- Dependencies -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
+
+  <!-- Global Styles -->
+  <link rel="stylesheet" href="/global.css">
+  <style>
+    .chart-container {
+      position: relative;
+      height: 500px;
+      margin-bottom: 30px;
+    }
+
+    .stats-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .stats-card.positive {
+      background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+      color: #333;
+    }
+
+    .stats-card.negative {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      color: #333;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      opacity: 0.8;
+      margin-bottom: 5px;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: bold;
+    }
+
+    .date-filter {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+
+    .control-buttons {
+      gap: 10px;
+    }
+
+    .loading-spinner {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Nav is injected by nav.js -->
+
+  <div class="container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 mt-4">
+      <div>
+        <h2 class="mb-0">Daily Realized P&L</h2>
+        <small class="text-muted">Track daily profits and losses</small>
+      </div>
+    </div>
+
+    <!-- Date Filter -->
+    <div class="date-filter">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label for="startDateInput" class="form-label">Start Date</label>
+          <input type="date" class="form-control" id="startDateInput">
+        </div>
+        <div class="col-md-3">
+          <label for="endDateInput" class="form-label">End Date</label>
+          <input type="date" class="form-control" id="endDateInput">
+        </div>
+        <div class="col-md-3">
+          <label for="tableSelect" class="form-label">Table</label>
+          <select class="form-select" id="tableSelect"></select>
+        </div>
+        <div class="col-md-3">
+          <div class="control-buttons d-flex">
+            <button id="fetchBtn" class="btn btn-primary btn-sm flex-grow-1">
+              <i class="bi bi-search me-1"></i> Fetch Data
+            </button>
+            <button id="exportBtn" class="btn btn-outline-success btn-sm">
+              <i class="bi bi-download me-1"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message Alert -->
+    <div id="message" class="alert alert-info d-none mb-4" role="alert">
+      <div class="d-flex align-items-center">
+        <span class="loading-spinner">
+          <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+        </span>
+        <span id="messageText"></span>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="stats-card">
+          <div class="stat-label">Total Realized P&L</div>
+          <div class="stat-value" id="totalPnl">$0.00</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card positive">
+          <div class="stat-label">Winning Days</div>
+          <div class="stat-value" id="winningDays">0</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card negative">
+          <div class="stat-label">Losing Days</div>
+          <div class="stat-value" id="losingDays">0</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stats-card">
+          <div class="stat-label">Avg Daily P&L</div>
+          <div class="stat-value" id="avgDailyPnl">$0.00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="card mb-4">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Daily P&L Candles</h5>
+      </div>
+      <div class="card-body">
+        <div class="chart-container">
+          <canvas id="candleChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily Breakdown Table -->
+    <div class="card">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Daily Breakdown</h5>
+      </div>
+      <div class="card-body">
+        <div id="emptyState" class="alert alert-secondary text-center">
+          No data loaded. Select date range and click "Fetch Data"
+        </div>
+        <table id="dailyTable" class="table table-striped table-hover mb-0" style="display: none;">
+          <thead class="table-light">
+            <tr>
+              <th>Date</th>
+              <th>Realized P&L</th>
+              <th>Trades Closed</th>
+              <th>Win Rate</th>
+            </tr>
+          </thead>
+          <tbody id="dailyTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="/nav.js"></script>
+  <script src="/CandleChart.js"></script>
+
+</body>
+
+</html>

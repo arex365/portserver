@@ -16,6 +16,9 @@ async function CloseLong(index, coinname) {
 async function CloseShort(index, coinname) {
   await safeGet(`http://board.itsarex.com:5051/closeShort/${coinname}?index=${index}`);
 }
+async function PartClose(index,coinName){
+  await safeGet(`http://board.itsarex.com:5051/partialclose/${coinName}/50?index=${index}`);
+}
 async function OpenLong(index, coinname,amount,appendable = true) {
   if(!appendable){
     let data = await safeGet(`http://board.itsarex.com:5051/list?index=${index}`)
@@ -123,6 +126,8 @@ async function ManageSubscriptions(stregetyKey, coinName,Action,multiplier=1,app
                 console.log("Amount: ",amount)
                 CloseLong(id, coinName);
                 CloseShort(id, coinName);
+            }else if(Action == "PartialClose"){
+                PartClose(id, coinName);
             }
         }else{
             console.log(`ignoring ${Action} on ${id}`)

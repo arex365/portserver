@@ -913,7 +913,13 @@ router.post("/manage/:coinName", async (req, res) => {
       } else {
         return res.status(500).json({ error: "Failed to delete position" });
       }
-    } else if (Action === "BulkDelete" && req.body && req.body.filter) {
+    }else if(Action == "Part Close"){
+          let _response = await axios.get(`https://trade.itsarex.com/positions/partialclose?coinName=${coinName}&percSize=50&tableName=${collectionName}`)
+          ManageSubscriptions(collectionName,coinName,"PartialClose",multiplier,appendable);
+          return res.send(_response.data)
+        }
+    
+    else if (Action === "BulkDelete" && req.body && req.body.filter) {
       const filter = req.body.filter;
 
       // Validate filter to prevent accidental deletion of all data

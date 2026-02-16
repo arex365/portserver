@@ -2,6 +2,7 @@
     // Define tabs
     const tabs = [
         { name: 'Line Charts', path: '/allcharts' },
+        { name: 'Daily P&L', path: '/candle' },
         { name: 'Bubble', path: '/bubble.html' },
         { name: 'Brick', path: '/brick.html' },
         { name: 'Stack', path: '/stack.html' },
@@ -16,6 +17,7 @@
 
     tabs.forEach(tab => {
         const isActive = (tab.path === '/allcharts' && (currentPath === '/allcharts' || currentPath.endsWith('AllCharts.html'))) ||
+            (tab.path === '/candle' && (currentPath === '/candle' || currentPath.endsWith('CandleChart.html'))) ||
             (currentPath === tab.path);
 
         navHtml += `
