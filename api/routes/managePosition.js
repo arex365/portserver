@@ -272,6 +272,7 @@ router.post("/manage/:coinName", async (req, res) => {
     let { Action } = req.body;
     let { coinName } = req.params;
     let multiplier = Number(req.query.mult) || 1;
+    let percSize = Number(req.query.percSize) || 50
     let appendable = req.query.appendable || true
     let hedgeMode = req.query.hedge === "true"  
     if(appendable == 'false'){
@@ -914,7 +915,7 @@ router.post("/manage/:coinName", async (req, res) => {
         return res.status(500).json({ error: "Failed to delete position" });
       }
     }else if(Action == "Part Close"){
-          let _response = await axios.get(`https://trade.itsarex.com/partialclose?coinName=${coinName}&percSize=50&tableName=${collectionName}`)
+          let _response = await axios.get(`https://trade.itsarex.com/partialclose?coinName=${coinName}&percSize=${percSize}&tableName=${collectionName}`)
           return res.send(_response.data)
         }
     
