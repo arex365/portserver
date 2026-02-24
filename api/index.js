@@ -12,6 +12,7 @@ const app = express();
 const bodyParser = require('body-parser');
 const subs = require('./routes/subs')
 const active = require('./routes/activeTrades')
+const bias = require('./routes/bias')
 const PORT = process.env.PORT || 5007;
 
 app.use(cors());
@@ -28,6 +29,7 @@ app.use(getPrice);
 app.use(getPositionCount);
 app.use(subs)
 app.use(active)
+app.use(bias)
 // Serve control page at /control
 app.get('/control', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'control.html'));
