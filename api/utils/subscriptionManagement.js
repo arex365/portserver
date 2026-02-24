@@ -20,6 +20,11 @@ async function PartClose(index,coinName,percSize){
   await safeGet(`http://board.itsarex.com:5051/partialclose/${coinName}/${percSize}?index=${index}`);
 }
 async function OpenLong(index, coinname,amount,appendable = true) {
+  let Bias = await safeGet(`https://trade.itsarex.com/getbias/${index}`)
+  if(Bias == -1){
+    CloseLong(index, coinname);
+    return;
+  }
   if(!appendable){
     let data = await safeGet(`http://board.itsarex.com:5051/list?index=${index}`)
     let status = checkIfCoinExistsInSide(coinname,data,"LONG")
@@ -30,6 +35,11 @@ async function OpenLong(index, coinname,amount,appendable = true) {
   await safeGet(`http://board.itsarex.com:5051/long/${coinname}/${amount}?index=${index}`);
 }
 async function OpenShort(index, coinname,amount, appendable = true) {
+  let Bias = await safeGet(`https://trade.itsarex.com/getbias/${index}`)
+  if(Bias == 1){
+    CloseShort(index, coinname);
+    return;
+  }
   if(!appendable){
     let data = await safeGet(`http://board.itsarex.com:5051/list?index=${index}`)
     let status = checkIfCoinExistsInSide(coinname,data,"SHORT")
