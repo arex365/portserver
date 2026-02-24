@@ -57,10 +57,10 @@ router.get('/getbias/:userID', async (req, res) => {
       });
     }
 
-    res.send(biasValue)
+    res.send(userBias.biasValue)
   } catch (err) {
     console.error('Error getting bias:', err);
-    res.status(500).json({ error: 'Error getting bias' });
+    res.status(500).json({ error: err.message });
   }
 });
 
