@@ -21,6 +21,8 @@ async function PartClose(index,coinName,percSize){
 }
 async function OpenLong(index, coinname,amount,appendable = true) {
   let Bias = await safeGet(`https://trade.itsarex.com/getbias/${index}`)
+  Bias = Bias.data
+  Bias = Number(Bias)
   if(Bias == -1){
     CloseLong(index, coinname);
     return;
@@ -36,6 +38,8 @@ async function OpenLong(index, coinname,amount,appendable = true) {
 }
 async function OpenShort(index, coinname,amount, appendable = true) {
   let Bias = await safeGet(`https://trade.itsarex.com/getbias/${index}`)
+  Bias = Bias.data
+  Bias = Number(Bias)
   if(Bias == 1){
     CloseShort(index, coinname);
     return;
