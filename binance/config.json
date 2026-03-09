@@ -1,0 +1,30 @@
+[
+    {
+        "APIKEY": "hdbFXqDrsAwN7vJv7WgIbiRETgNVsVS2DXwaaJISc6vqZ71qHmrtDAoJDsy2iG7w",
+        "SECRET": "nC2qrMLpjlDimv9vAGMNZeOfYyzxhsBDL2djirKmU4ZZ6EC1VZJ5Zf4tfamoiE5Y",
+        "TESTNET": false,
+        "BASE_URL": "https://testnet.binancefuture.com",
+        "BASE_URL_PROD": "https://fapi.binance.com",
+        "QUOTE_ASSET": "USDT",
+        "PAPI" : false
+    },
+    {
+         "APIKEY": "O7CxsmKrDscOCmnp6J0pYKivHejhbh49QIGocVM67ThArPmfa1KeF0Qv4ZMcKxPe",
+        "SECRET": "BcCK2sAdWSRQUC8NCDxvZAEZBgsKkXDn228UCWsqDDiykiPGfKHVQ0C9QlVxn4BX",
+        "TESTNET": false,
+        "BASE_URL": "https://testnet.binancefuture.com",
+        "BASE_URL_PROD": "https://fapi.binance.com",
+        "QUOTE_ASSET": "USDT",
+        "PAPI": false
+
+    },
+{
+    "APIKEY": "E1rBxlhau1xCvmEeQZCCEf3zQM6uTsi6iUlTTzkfyGvCkFX2dFYhuVDgKEqStALE",
+    "SECRET": "e21HGNHs1b9PybVSYrp3M7832wXpKAMvK46ff02SPjD378o5zvTXCK43FKbs5KBV",
+    "TESTNET": false,
+    "BASE_URL": "https://testnet.binancefuture.com",
+    "BASE_URL_PROD": "https://fapi.binance.com",
+    "QUOTE_ASSET": "USDT",
+    "PAPI": false
+}
+]

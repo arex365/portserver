@@ -1,0 +1,8 @@
+{
+    "APIKEY": "REPLACE_WITH_YOUR_BINANCE_API_KEY",
+    "SECRET": "REPLACE_WITH_YOUR_BINANCE_SECRET_KEY",
+    "TESTNET": true,
+    "BASE_URL": "https://testnet.binancefuture.com",
+    "BASE_URL_PROD": "https://fapi.binance.com",
+    "QUOTE_ASSET": "USDC"
+}

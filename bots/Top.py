@@ -111,8 +111,8 @@ def run():
     if not futures_data:
         return [], []
 
-    top_gainers = get_top_gainers(futures_data, top_n=5)
-    top_losers = get_top_losers(futures_data, top_n=5)
+    top_gainers = get_top_gainers(futures_data, top_n=1)
+    top_losers = get_top_losers(futures_data, top_n=1)
 
     return [coin["symbol"] for coin in top_gainers], [coin["symbol"] for coin in top_losers]
 
@@ -134,10 +134,10 @@ def CloseTrade(coin):
     }    
     try:
         response = requests.post(url, json=payload)
-        serial(f"❌ Closing trade for {coin}: {response.text}")
+        serial(f"? Closing trade for {coin}: {response.text}")
         return response.status_code == 200
     except Exception as e:
-        serial(f"❌ Failed to close trade for {coin}: {e}")
+        serial(f"? Failed to close trade for {coin}: {e}")
         return False
 
 
@@ -157,10 +157,10 @@ def OpenTrade(coin):
     try:
         response = requests.post(url, json=payload)
         response2 = requests.post(url2,json=payload2)
-        serial(f"✅ Opening trade for {coin}: {response.text}")
+        serial(f"? Opening trade for {coin}: {response.text}")
         return response.status_code == 200
     except Exception as e:
-        serial(f"❌ Failed to open trade for {coin}: {e}")
+        serial(f"? Failed to open trade for {coin}: {e}")
         return False
 
 
@@ -174,10 +174,10 @@ def CloseShortTrade(coin):
     }    
     try:
         response = requests.post(url, json=payload)
-        serial(f"❌ Closing short trade for {coin}: {response.text}")
+        serial(f"? Closing short trade for {coin}: {response.text}")
         return response.status_code == 200
     except Exception as e:
-        serial(f"❌ Failed to close short trade for {coin}: {e}")
+        serial(f"? Failed to close short trade for {coin}: {e}")
         return False
 
 
@@ -197,10 +197,10 @@ def OpenShortTrade(coin):
     try:
         response = requests.post(url, json=payload)
         response2 = requests.post(url2,json=payload2)
-        serial(f"✅ Opening short trade for {coin}: {response.text}")
+        serial(f"? Opening short trade for {coin}: {response.text}")
         return response.status_code == 200
     except Exception as e:
-        serial(f"❌ Failed to open short trade for {coin}: {e}")
+        serial(f"? Failed to open short trade for {coin}: {e}")
         return False
 
 

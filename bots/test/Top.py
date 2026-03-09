@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 
 BASE_URL = "https://fapi.binance.com"
-prodMode = True
+prodMode = False
 
 def serial(data):
     if prodMode == False:
@@ -76,7 +76,7 @@ def get_all_futures_data(symbols, start_time_ms, max_workers=5):
     return results
 
 
-def get_top_gainers(futures_data, top_n=5):
+def get_top_gainers(futures_data, top_n=1):
     sorted_data = sorted(
         futures_data,
         key=lambda x: x["priceChangePercent"],
@@ -85,12 +85,21 @@ def get_top_gainers(futures_data, top_n=5):
     return sorted_data[:top_n]
 
 
+def get_top_losers(futures_data, top_n=1):
+    sorted_data = sorted(
+        futures_data,
+        key=lambda x: x["priceChangePercent"],
+        reverse=False
+    )
+    return sorted_data[:top_n]
+
+
 def run():
-    serial("\nChecking top gainers...")
+    serial("\nChecking top gainers and losers...")
 
     symbols = get_active_futures_symbols()
     if not symbols:
-        return []
+        return [], []
 
     today = datetime.datetime.utcnow().replace(
         hour=0, minute=0, second=0, microsecond=0
@@ -100,34 +109,31 @@ def run():
     futures_data = get_all_futures_data(symbols, start_time_ms)
 
     if not futures_data:
-        return []
+        return [], []
 
     top_gainers = get_top_gainers(futures_data, top_n=5)
+    top_losers = get_top_losers(futures_data, top_n=5)
 
-    return [coin["symbol"] for coin in top_gainers]
+    return [coin["symbol"] for coin in top_gainers], [coin["symbol"] for coin in top_losers]
 
 
 # ===== Trade Management Logic =====
 
 coins = []
+loser_coins = []
 
 
 def CloseTrade(coin):
+    return True
     #remove USDT from coin
     coin = coin.replace("USDT", "")
-    url = f"http://localhost:5007/manage/{coin}?tableName=Raly"
-    url2 = f'http://localhost:5007/manage/{coin}?tableName=RalyRev'
+    url = f"http://f1.itsarex.com:5007/manage/{coin}?tableName=Top"
     payload = {
         'Action': "CloseLong",
-        "positionSize": 100
-    }
-    payload2 = {
-        'Action': "CloseShort",
         "positionSize": 100
     }    
     try:
         response = requests.post(url, json=payload)
-        response2 = requests.post(url2,json=payload2)
         serial(f"❌ Closing trade for {coin}: {response.text}")
         return response.status_code == 200
     except Exception as e:
@@ -137,8 +143,8 @@ def CloseTrade(coin):
 
 def OpenTrade(coin):
     coin = coin.replace("USDT", "")
-    url = f"http://localhost:5007/manage/{coin}?tableName=Raly"
-    url2 = f'http://localhost:5007/manage/{coin}?tableName=RalyRev'
+    url = f"http://f1.itsarex.com:5007/manage/{coin}?tableName=Top"
+    url2 = f"http://f1.itsarex.com:5007/manage/{coin}?tableName=TopRev"
     payload = {
         'Action': "Long",
         "positionSize": 100
@@ -147,6 +153,7 @@ def OpenTrade(coin):
         'Action': "Short",
         "positionSize": 100
     }
+
     try:
         response = requests.post(url, json=payload)
         response2 = requests.post(url2,json=payload2)
@@ -154,6 +161,46 @@ def OpenTrade(coin):
         return response.status_code == 200
     except Exception as e:
         serial(f"❌ Failed to open trade for {coin}: {e}")
+        return False
+
+
+def CloseShortTrade(coin):
+    return True 
+    coin = coin.replace("USDT", "")
+    url = f"http://f1.itsarex.com:5007/manage/{coin}?tableName=Top"
+    payload = {
+        'Action': "CloseShort",
+        "positionSize": 100
+    }    
+    try:
+        response = requests.post(url, json=payload)
+        serial(f"❌ Closing short trade for {coin}: {response.text}")
+        return response.status_code == 200
+    except Exception as e:
+        serial(f"❌ Failed to close short trade for {coin}: {e}")
+        return False
+
+
+def OpenShortTrade(coin):
+    coin = coin.replace("USDT", "")
+    url = f"http://f1.itsarex.com:5007/manage/{coin}?tableName=Top"
+    url2 = f"http://f1.itsarex.com:5007/manage/{coin}?tableName=TopRev"
+    payload = {
+        'Action': "Short",
+        "positionSize": 100
+    }
+    payload2 = {
+        'Action': "Long",
+        "positionSize": 100
+    }
+
+    try:
+        response = requests.post(url, json=payload)
+        response2 = requests.post(url2,json=payload2)
+        serial(f"✅ Opening short trade for {coin}: {response.text}")
+        return response.status_code == 200
+    except Exception as e:
+        serial(f"❌ Failed to open short trade for {coin}: {e}")
         return False
 
 
@@ -175,12 +222,32 @@ def SetCoins(new_coins):
     serial(f"Current Active Coins: {coins} (Total: {len(coins)})")
 
 
+def SetLoserCoins(new_loser_coins):
+    global loser_coins
+
+    # Close short positions that are no longer in top losers
+    for coin in loser_coins:
+        if coin not in new_loser_coins:
+            CloseShortTrade(coin)
+
+    # Open new short positions for new losers
+    for coin in new_loser_coins:
+        if coin not in loser_coins:
+            OpenShortTrade(coin)
+
+    loser_coins = new_loser_coins.copy()
+
+    serial(f"Current Active Loser Coins (Short): {loser_coins} (Total: {len(loser_coins)})")
+
+
 if __name__ == "__main__":
     while True:
-        new_coins = run()
+        new_coins, new_loser_coins = run()
         if new_coins:
             SetCoins(new_coins)
+        if new_loser_coins:
+            SetLoserCoins(new_loser_coins)
 
         serial("\nSleeping for 10 minutes...\n")
-        requests.get("http://localhost:5007/ping")
+        requests.get("http://f1.itsarex.com:5007/ping")
         time.sleep(600)
